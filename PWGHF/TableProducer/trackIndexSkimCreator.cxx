@@ -2082,7 +2082,7 @@ struct HfTrackIndexSkimCreator {
       initCCDB(bc, runNumber, ccdb, config.isRun2 ? config.ccdbPathGrp : config.ccdbPathGrpMag, lut, config.isRun2);
       df2.setBz(o2::base::Propagator::Instance()->getNominalBz());
       df3.setBz(o2::base::Propagator::Instance()->getNominalBz());
-      
+
       // used to calculate number of candidiates per event
       auto nCand2 = rowTrackIndexProng2.lastIndex();
       auto nCand3 = rowTrackIndexProng3.lastIndex();
@@ -2336,7 +2336,6 @@ struct HfTrackIndexSkimCreator {
             }
           }
 
-
           if (config.do3Prong == 1 && is2ProngCandidateGoodFor3Prong) { // if 3 prongs are enabled and the first 2 tracks are selected for the 3-prong channels
             // second loop over positive tracks
             for (auto trackIndexPos2 = trackIndexPos1 + 1; trackIndexPos2 != groupedTrackIndicesPos1.end(); ++trackIndexPos2) {
@@ -2503,7 +2502,7 @@ struct HfTrackIndexSkimCreator {
 
               // 3-prong selections after secondary vertex
               applySelection3Prong(pVecCandProng3Pos, secondaryVertex3, pvRefitCoord3Prong2Pos1Neg, cutStatus3Prong, isSelected3ProngCand);
-              
+
               std::array<std::vector<float>, kN3ProngDecays> mlScores3Prongs;
               if (config.applyMlForHfFilters) {
                 std::vector<float> inputFeatures{trackParVarPcaPos1.getPt(), dcaInfoPos1[0], dcaInfoPos1[1], trackParVarPcaNeg1.getPt(), dcaInfoNeg1[0], dcaInfoNeg1[1], trackParVarPcaPos2.getPt(), dcaInfoPos2[0], dcaInfoPos2[1]};
@@ -2538,7 +2537,7 @@ struct HfTrackIndexSkimCreator {
                 rowProng3CutStatus(Prong3CutStatus[0], Prong3CutStatus[1], Prong3CutStatus[2], Prong3CutStatus[3]); // FIXME when we can do this by looping over kN3ProngDecays
               }
 
-              / fill histograms
+              // fill histograms
               if (config.fillHistograms) {
                 registry.fill(HIST("hVtx3ProngX"), secondaryVertex3[0]);
                 registry.fill(HIST("hVtx3ProngY"), secondaryVertex3[1]);
