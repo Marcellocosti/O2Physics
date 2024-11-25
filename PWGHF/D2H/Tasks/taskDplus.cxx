@@ -57,6 +57,12 @@ struct HfTaskDplus {
 
   HfHelper hfHelper;
 
+  // using CandDplusData = soa::Filtered<soa::Join<aod::HfCand3Prong, aod::HfSelDplusToPiKPi>>;
+  // using CandDplusDataWithMl = soa::Filtered<soa::Join<aod::HfCand3Prong, aod::HfSelDplusToPiKPi, aod::HfMlDplusToPiKPi>>;
+  // using CandDplusMcReco = soa::Filtered<soa::Join<aod::HfCand3Prong, aod::Hf3Prongs, aod::HfSelDplusToPiKPi, aod::HfCand3ProngMcRec>>;
+  // using CandDplusMcRecoWithMl = soa::Filtered<soa::Join<aod::HfCand3Prong, aod::Hf3Prongs, aod::HfSelDplusToPiKPi, aod::HfCand3ProngMcRec, aod::HfMlDplusToPiKPi>>;
+  // using McParticles = soa::Join<aod::McParticles, aod::HfCand3ProngMcGen>;
+
   using CandDplusData = soa::Filtered<soa::Join<aod::HfCand3Prong, aod::HfSelDplusToPiKPi>>;
   using CandDplusDataWithMl = soa::Filtered<soa::Join<aod::HfCand3Prong, aod::HfSelDplusToPiKPi, aod::HfMlDplusToPiKPi>>;
   using CandDplusMcReco = soa::Filtered<soa::Join<aod::HfCand3Prong, aod::Hf3Prongs, aod::HfSelDplusToPiKPi, aod::HfCand3ProngMcRec>>;
