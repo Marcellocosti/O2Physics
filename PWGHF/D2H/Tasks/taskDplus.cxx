@@ -42,14 +42,15 @@ struct HfTaskDplus {
   Configurable<int> occEstimator{"occEstimator", 1, "Occupancy estimation (None: 0, ITS: 1, FT0C: 2)"};
   Configurable<std::vector<double>> binsPt{"binsPt", std::vector<double>{hf_cuts_dplus_to_pi_k_pi::vecBinsPt}, "pT bin limits"};
   Configurable<std::vector<int>> classMl{"classMl", {0, 1, 2}, "Indexes of ML scores to be stored. Three indexes max."};
+  Configurable<bool> isPbPbColl{"isPbPbColl", 0, "Flag to separate pp and PbPb analyses"};
 
   ConfigurableAxis thnConfigAxisCent{"thnConfigAxisCent", {10000, 0., 100.}, ""};
   ConfigurableAxis thnConfigAxisOccupancyITS{"thnConfigAxisOccupancyITS", {14, 0, 14000}, ""};
   ConfigurableAxis thnConfigAxisOccupancyFT0C{"thnConfigAxisOccupancyFT0C", {14, 0, 140000}, ""};
+  ConfigurableAxis thnConfigAxisPtBHad{"axisPtBHad", {0, 0., 10}, "axis for pt of B hadron decayed into D candidate"};
   ConfigurableAxis axisMlScore0{"axisMlScore0", {100, 0., 1.}, "axis for ML output score 0"};
   ConfigurableAxis axisMlScore1{"axisMlScore1", {100, 0., 1.}, "axis for ML output score 1"};
   ConfigurableAxis axisMlScore2{"axisMlScore2", {100, 0., 1.}, "axis for ML output score 2"};
-  ConfigurableAxis axisPtBHad{"axisPtBHad", {0, 0., 10}, "axis for pt of B hadron decayed into D candidate"};
 
   HfHelper hfHelper;
 
@@ -81,8 +82,6 @@ struct HfTaskDplus {
   Partition<CandDplusMcRecoWithMl> recoBkgCandidatesWithMl = nabs(aod::hf_cand_3prong::flagMcMatchRec) != static_cast<int8_t>(BIT(aod::hf_cand_3prong::DecayType::DplusToPiKPi)) && aod::hf_sel_candidate_dplus::isSelDplusToPiKPi >= selectionFlagDplus;
 
   // Generated particles
-
-  SliceCache cache;
 
   HistogramRegistry registry{
     "registry",
@@ -222,7 +221,7 @@ struct HfTaskDplus {
   /// \param occupancy collision occupancy
   /// \param centrality collision centrality
   /// \param ptbhad transverse momentum of beauty mother for nonprompt candidates
-  template <bool isPbPbColl, bool isMc, bool isMatched, typename T1>
+  template <bool isPbPb, bool isMc, bool isMatched, typename T1>
   void fillSparseML(const T1& candidate,
                     float& occupancy,
                     float& centrality,
@@ -232,67 +231,53 @@ struct HfTaskDplus {
     for (unsigned int iclass = 0; iclass < classMl->size(); iclass++) {
       outputMl[iclass] = candidate.mlProbDplusToPiKPi()[classMl->at(iclass)];
     }
-    if constexpr (isMc) {
-      if (isPbPbColl) {
-        if (centEstimator != 0 && occEstimator == 0) {
-          if constexpr (isMatched) {
-            if (candidate.originMcRec() == RecoDecay::OriginType::Prompt) {
+    if constexpr (!isMc) {
+      registry.fill(HIST("hSparseMass"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2]);
+    } else {
+      if constexpr (isMatched) {
+        if (isPbPb) {
+          if (candidate.originMcRec() == RecoDecay::OriginType::Prompt) {
+            if (centEstimator != 0 && occEstimator == 0) {
               registry.fill(HIST("hSparseMassPrompt"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality);
-            } else if (candidate.originMcRec() == RecoDecay::OriginType::NonPrompt) {
+            }
+            else if (centEstimator == 0 && occEstimator != 0) {
+              registry.fill(HIST("hSparseMassPrompt"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], occupancy);
+            }
+            else {
+              registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality, occupancy);
+            }
+          } else if (candidate.originMcRec() == RecoDecay::OriginType::NonPrompt) {
+            if (centEstimator != 0 && occEstimator == 0) {
               registry.fill(HIST("hSparseMassFD"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality, ptbhad);
             }
-          } else {
-            registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality);
-          }
-        } 
-        elif (centEstimator == 0 && occEstimator != 0) {
-          if constexpr (isMatched) {
-            if (candidate.originMcRec() == RecoDecay::OriginType::Prompt) {
-              registry.fill(HIST("hSparseMassPrompt"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], occupancy);
-            } else if (candidate.originMcRec() == RecoDecay::OriginType::NonPrompt) {
+            else if (centEstimator == 0 && occEstimator != 0) {
               registry.fill(HIST("hSparseMassFD"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], occupancy, ptbhad);
             }
-          } else {
-            registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], occupancy);
-          }
-        }
-        else {
-          if constexpr (isMatched) {
-            if (candidate.originMcRec() == RecoDecay::OriginType::Prompt) {
-              registry.fill(HIST("hSparseMassPrompt"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality);
-            } else if (candidate.originMcRec() == RecoDecay::OriginType::NonPrompt) {
+            else {
               registry.fill(HIST("hSparseMassFD"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality, occupancy, ptbhad);
             }
-          } else {
-            registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality, occupancy);
-          }        
-        }
-      } 
-      else {
-        if constexpr (isMatched) {
+          }
+          else {
+            if (centEstimator != 0 && occEstimator == 0) {
+             registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality);
+            }
+            else if (centEstimator == 0 && occEstimator != 0) {
+             registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], occupancy);
+            }
+            else {
+             registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality, occupancy);
+            }
+          }
+        } else {
           if (candidate.originMcRec() == RecoDecay::OriginType::Prompt) {
             registry.fill(HIST("hSparseMassPrompt"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2]);
           } else if (candidate.originMcRec() == RecoDecay::OriginType::NonPrompt) {
-            registry.fill(HIST("hSparseMassFD"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], ptbhad);
+            registry.fill(HIST("hSparseMassFD"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2]);
           }
-        } else {
-          registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2]);
+          else {
+            registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2]);
+          }
         }
-      }
-    } else {
-      if (isPbPbColl) {
-        if (centEstimator != 0 && occEstimator == 0) {
-          registry.fill(HIST("hSparseMass"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality);
-        } 
-        elif (centEstimator == 0 && occEstimator != 0) {
-          registry.fill(HIST("hSparseMass"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], occupancy);
-        }
-        else {
-          registry.fill(HIST("hSparseMass"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality, occupancy);
-        }
-      } 
-      else {
-          registry.fill(HIST("hSparseMass"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2]);
       }
     }
   }
@@ -369,38 +354,37 @@ struct HfTaskDplus {
   // Run analysis for the reconstructed Dplus candidates from data
   /// \param collision analyzed collision
   /// \param candidates are reconstructed candidates associated to the collision
-  template <bool fillMl, bool isPbPbColl, typename T1, typename Coll>
-  void runDataAnalysis(Coll::iterator const& collision, const T1& candidates)
+  template <bool fillMl, bool isPbPb, typename T1> //, typename Coll>
+  void runDataAnalysis(Collisions::iterator const& collision, const T1& candidates)
   {
 
     float cent{-1};
     float occ{-1};
-    for (const auto& collision : collisions) {
-      
-      auto thisCollId = collision.globalIndex();
-      if constexpr (!fillMl) {
-        auto selectedDPlusCandidates = candidates.sliceBy(candDplusPerCollision, thisCollId);
-        for (const auto& candidate : selectedDPlusCandidates) {
-          if ((yCandRecoMax >= 0. && std::abs(hfHelper.yDplus(candidate)) > yCandRecoMax)) {
-            continue;
-          }
-          fillHisto(candidate);
+    float ptBHad{-1};
+    auto thisCollId = collision.globalIndex();
+    if constexpr (!fillMl) {
+      auto selectedDPlusCandidates = candidates.sliceBy(candDplusPerCollision, thisCollId);
+      for (const auto& candidate : selectedDPlusCandidates) {
+        if ((yCandRecoMax >= 0. && std::abs(hfHelper.yDplus(candidate)) > yCandRecoMax)) {
+          continue;
         }
-      } else {
-        if (isPbPbColl && centEstimator != 0) {
-          cent = getCentrality(collision);
+        fillHisto(candidate);
+      }
+    } else {
+      if (isPbPb && centEstimator != 0) {
+        cent = getCentrality(collision);
+      }
+      if (isPbPb && occEstimator != 0) {
+        occ = getOccupancy(collision);
+      }
+      auto selectedDPlusWithMlCandidates = candidates.sliceBy(candDplusPerCollision, thisCollId);
+      for (const auto& candidate : selectedDPlusCandidatesWithMl) {
+        if ((yCandRecoMax >= 0. && std::abs(hfHelper.yDplus(candidate)) > yCandRecoMax)) {
+          continue;
         }
-        if (isPbPbColl && occEstimator != 0) {
-          occ = getOccupancy(collision);
-        }
-        auto selectedDPlusWithMlCandidates = candidates.sliceBy(candDplusPerCollision, thisCollId);
-        for (const auto& candidate : selectedDPlusCandidatesWithMl) {
-          if ((yCandRecoMax >= 0. && std::abs(hfHelper.yDplus(candidate)) > yCandRecoMax)) {
-            continue;
-          }
-          fillHisto(candidate);
-          fillSparseML<isPbPbColl, false, false>(candidate, cent, occ);
-        }
+        fillHisto(candidate);
+        // fillSparseML<true, false, false>(candidate, cent, occ, ptBHad);
+        fillSparseML<isPbPb, false, false>(candidate, cent, occ, ptBHad);
       }
     }
   }
@@ -408,8 +392,8 @@ struct HfTaskDplus {
   /// \param mccollision is the analyzed simulated collision
   /// \param candidates are reconstructed candidates associated to the collision
   /// \param mcParticles are particles with MC information associated to the collision
-  template <bool fillMl, bool isPbPbColl, typename T1, typename T2, typename T3, typename Coll>
-  void runMCAnalysis(Coll::iterator const& mccollision, const T1& recoCandidates, const T2& recoBkgCandidates, const T3& mcParticles)
+  template <bool fillMl, bool isPbPb, typename T1, typename T2, typename T3> //, typename Coll>
+  void runMCAnalysis(McCollisions::iterator const& mccollision, const T1& recoCandidates, const T2& recoBkgCandidates, const T3& mcParticles)
   {
 
     float cent{-1};
@@ -431,27 +415,32 @@ struct HfTaskDplus {
         fillHistoMCRec<false>(candidate);
       }
     } else {
-      if (isPbPbColl && centEstimator != 0) {
-        cent = getCentrality(collision);
+      if (isPbPb && centEstimator != 0) {
+        cent = getCentralityMc(mccollision);
       }
-      if (isPbPbColl && occEstimator != 0) {
-        occ = getOccupancy(collision);
+      if (isPbPb && occEstimator != 0) {
+        occ = getOccupancyMc(mccollision);
       }
+      float ptBHad{-1};
       for (const auto& candidate : recoCandidates) {
         if ((yCandRecoMax >= 0. && std::abs(hfHelper.yDplus(candidate)) > yCandRecoMax)) {
           continue;
         }
         fillHisto(candidate);
         fillHistoMCRec<true>(candidate);
-        fillSparseML<isPbPbColl, true, true>(candidate, cent, occ);
+        // fillSparseML<false, true, true>(candidate, cent, occ, ptBHad);
+        fillSparseML<isPbPb, true, true>(candidate, cent, occ, ptBHad);
       }
+      ptBHad = -1.;
       // Bkg
       for (const auto& candidate : recoBkgCandidates) {
         if ((yCandRecoMax >= 0. && std::abs(hfHelper.yDplus(candidate)) > yCandRecoMax)) {
           continue;
         }
+        ptBHad = candidate.ptBhadMotherPart();
         fillHistoMCRec<false>(candidate);
-        fillSparseML<isPbPbColl, true, false>(candidate, cent, occ);
+        // fillSparseML<true, true, false>(candidate, cent, occ, ptBHad);
+        fillSparseML<isPbPb, true, false>(candidate, cent, occ, ptBHad);
       }
     }
     // MC gen.
@@ -484,6 +473,27 @@ struct HfTaskDplus {
     return occupancy;
   }
 
+  /// Get the occupancy
+  /// \param collision is the collision with the occupancy information
+  float getOccupancyMc(McCollisions::iterator const& collision)
+  {
+    float occupancy = -999.;
+    switch (occEstimator) {
+      case 1:
+        occupancy = collision.trackOccupancyInTimeRange();
+        break;
+      case 2:
+        occupancy = collision.ft0cOccupancyInTimeRange();
+        break;
+      default:
+        LOG(warning) << "Occupancy estimator not valid. Possible values are ITS or FT0C. Fallback to ITS";
+        occupancy = collision.trackOccupancyInTimeRange();
+        break;
+    }
+    return occupancy;
+  }
+
+
   /// Get the centrality
   /// \param collision is the collision with the centrality information
   float getCentrality(Collisions::iterator const& collision)
@@ -504,36 +514,56 @@ struct HfTaskDplus {
     return cent;
   }
 
+  /// Get the centrality
+  /// \param collision is the collision with the centrality information
+  float getCentralityMc(McCollisions::iterator const& collision)
+  {
+    float cent = -999.;
+    switch (centEstimator) {
+      case CentralityEstimator::FT0C:
+        cent = collision.centFT0C();
+        break;
+      case CentralityEstimator::FT0M:
+        cent = collision.centFT0M();
+        break;
+      default:
+        LOG(warning) << "Centrality estimator not valid. Possible values are T0C, T0M. Fallback to T0C";
+        cent = collision.centFT0C();
+        break;
+    }
+    return cent;
+  }
+
   // process functions
   void processData(Collisions::iterator const& collision, CandDplusData const&)
   {
-    auto candDplusDataColls = CandDplusData->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
-    runDataAnalysis<false>(collision, candDplusDataColls);
+    auto candDplusDataColls = selectedDPlusCandidates->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
+    runDataAnalysis<false, true>(collision, candDplusDataColls); // TODO: change second argument template
   }
   PROCESS_SWITCH(HfTaskDplus, processData, "Process data w/o ML", true);
 
   void processDataWithMl(Collisions::iterator const& collision, CandDplusDataWithMl const&)
   {
-    auto candDplusDataWithMlColls = CandDplusDataWithMl->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
-    runDataAnalysis<true>(collision, candDplusDataWithMlColls);
+    auto candDplusDataWithMlColls = selectedDPlusCandidatesWithMl->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
+    runDataAnalysis<true, true>(collision, candDplusDataWithMlColls);
   }
   PROCESS_SWITCH(HfTaskDplus, processDataWithMl, "Process data with ML", false);
 
   void processMc(McCollisions::iterator const& mccollision, McParticles const& mcParticles, CandDplusMcReco const&)
   {
-    auto recoCandDplusMcRecoColls = CandDplusMcReco->sliceByCached(aod::mccollisionlabel::mcCollisionId, mccollisions.globalIndex(), cache);
-    auto recoBkgCandDplusMcGenColls = recoBkgCandidates->sliceByCached(aod::mccollisionlabel::mcCollisionId, mccollisions.globalIndex(), cache);
-    auto genCandDplusMcGenColls = mcParticles->sliceByCached(aod::mccollisionlabel::mcCollisionId, mccollisions.globalIndex(), cache);
-    runMCAnalysis<false>(mccollision, recoCandDplusMcRecoColls, recoBkgCandDplusMcGenColls, genCandDplusMcGenColls);
+    auto recoCandDplusMcRecoColls = recoDPlusCandidates->sliceByCached(aod::mccollisionlabel::mcCollisionId, mccollision.globalIndex(), cache);
+    auto recoBkgCandDplusMcGenColls = recoBkgCandidates->sliceByCached(aod::mccollisionlabel::mcCollisionId, mccollision.globalIndex(), cache);
+    auto genCandDplusMcGenColls = mcParticles.sliceByCached(aod::mccollisionlabel::mcCollisionId, mccollision.globalIndex(), cache);
+    runMCAnalysis<false, true>(mccollision, recoCandDplusMcRecoColls, recoBkgCandDplusMcGenColls, genCandDplusMcGenColls);
   }
   PROCESS_SWITCH(HfTaskDplus, processMc, "Process MC w/o ML", false);
 
   void processMcWithMl(McCollisions::iterator const& mccollision, McParticles const& mcParticles, CandDplusMcRecoWithMl const&)
   {
-    auto recoCandDplusMcRecoWithMlColls = CandDplusMcRecoWithMl->sliceByCached(aod::mccollisionlabel::mcCollisionId, mccollisions.globalIndex(), cache);
-    auto recoBkgCandDplusMcGenWithMlColls = recoBkgCandidatesWithMl->sliceByCached(aod::mccollisionlabel::mcCollisionId, mccollisions.globalIndex(), cache);
-    auto genCandDplusMcGenWithMlColls = mcParticles->sliceByCached(aod::mccollisionlabel::mcCollisionId, mccollisions.globalIndex(), cache);
-    runMCAnalysis<true>(mccollision, recoCandDplusMcRecoWithMlColls, recoBkgCandDplusMcGenWithMlColls, genCandDplusMcGenWithMlColls);
+    auto recoCandDplusMcRecoWithMlColls = recoDPlusCandidatesWithMl->sliceByCached(aod::mccollisionlabel::mcCollisionId, mccollision.globalIndex(), cache);
+    auto recoBkgCandDplusMcGenWithMlColls = recoBkgCandidatesWithMl->sliceByCached(aod::mccollisionlabel::mcCollisionId, mccollision.globalIndex(), cache);
+    auto genCandDplusMcGenWithMlColls = mcParticles.sliceByCached(aod::mccollisionlabel::mcCollisionId, mccollision.globalIndex(), cache);
+    runMCAnalysis<true, true>(mccollision, recoCandDplusMcRecoWithMlColls, recoBkgCandDplusMcGenWithMlColls, genCandDplusMcGenWithMlColls);
   }
   PROCESS_SWITCH(HfTaskDplus, processMcWithMl, "Process MC with ML", false);
 };
