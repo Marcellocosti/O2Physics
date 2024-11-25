@@ -232,7 +232,18 @@ struct HfTaskDplus {
       outputMl[iclass] = candidate.mlProbDplusToPiKPi()[classMl->at(iclass)];
     }
     if constexpr (!isMc) {
-      registry.fill(HIST("hSparseMass"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2]);
+      if(!isPbPb || (centEstimator == 0 && occEstimator == 0)) {
+        registry.fill(HIST("hSparseMass"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2]);
+      }
+      if (isPbPb && centEstimator != 0 && occEstimator == 0) {
+       registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality);
+      }
+      if (isPbPb && centEstimator == 0 && occEstimator != 0) {
+       registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], occupancy);
+      }
+      if (isPbPb && centEstimator != 0 && occEstimator != 0) {
+       registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality, occupancy);
+      }
     } else {
       if constexpr (isMatched) {
         if (isPbPb) {
@@ -372,10 +383,10 @@ struct HfTaskDplus {
       }
     } else {
       if (isPbPb && centEstimator != 0) {
-        cent = getCentrality(collision);
+        cent = getCentrality<Collisions>(collision);
       }
       if (isPbPb && occEstimator != 0) {
-        occ = getOccupancy(collision);
+        occ = getOccupancy<Collisions>(collision);
       }
       auto selectedDPlusWithMlCandidates = candidates.sliceBy(candDplusPerCollision, thisCollId);
       for (const auto& candidate : selectedDPlusCandidatesWithMl) {
@@ -383,7 +394,6 @@ struct HfTaskDplus {
           continue;
         }
         fillHisto(candidate);
-        // fillSparseML<true, false, false>(candidate, cent, occ, ptBHad);
         fillSparseML<isPbPb, false, false>(candidate, cent, occ, ptBHad);
       }
     }
@@ -416,10 +426,10 @@ struct HfTaskDplus {
       }
     } else {
       if (isPbPb && centEstimator != 0) {
-        cent = getCentralityMc(mccollision);
+        cent = getCentrality<McCollisions>(mccollision);
       }
       if (isPbPb && occEstimator != 0) {
-        occ = getOccupancyMc(mccollision);
+        occ = getOccupancy<McCollisions>(mccollision);
       }
       float ptBHad{-1};
       for (const auto& candidate : recoCandidates) {
@@ -428,18 +438,16 @@ struct HfTaskDplus {
         }
         fillHisto(candidate);
         fillHistoMCRec<true>(candidate);
-        // fillSparseML<false, true, true>(candidate, cent, occ, ptBHad);
+        ptBHad = candidate.ptBhadMotherPart();
         fillSparseML<isPbPb, true, true>(candidate, cent, occ, ptBHad);
       }
-      ptBHad = -1.;
       // Bkg
+      ptBHad=-1;
       for (const auto& candidate : recoBkgCandidates) {
         if ((yCandRecoMax >= 0. && std::abs(hfHelper.yDplus(candidate)) > yCandRecoMax)) {
           continue;
         }
-        ptBHad = candidate.ptBhadMotherPart();
         fillHistoMCRec<false>(candidate);
-        // fillSparseML<true, true, false>(candidate, cent, occ, ptBHad);
         fillSparseML<isPbPb, true, false>(candidate, cent, occ, ptBHad);
       }
     }
@@ -455,7 +463,8 @@ struct HfTaskDplus {
 
   /// Get the occupancy
   /// \param collision is the collision with the occupancy information
-  float getOccupancy(Collisions::iterator const& collision)
+  template <typename Coll>
+  float getOccupancy(Coll::iterator const& collision)
   {
     float occupancy = -999.;
     switch (occEstimator) {
@@ -473,50 +482,10 @@ struct HfTaskDplus {
     return occupancy;
   }
 
-  /// Get the occupancy
-  /// \param collision is the collision with the occupancy information
-  float getOccupancyMc(McCollisions::iterator const& collision)
-  {
-    float occupancy = -999.;
-    switch (occEstimator) {
-      case 1:
-        occupancy = collision.trackOccupancyInTimeRange();
-        break;
-      case 2:
-        occupancy = collision.ft0cOccupancyInTimeRange();
-        break;
-      default:
-        LOG(warning) << "Occupancy estimator not valid. Possible values are ITS or FT0C. Fallback to ITS";
-        occupancy = collision.trackOccupancyInTimeRange();
-        break;
-    }
-    return occupancy;
-  }
-
-
   /// Get the centrality
   /// \param collision is the collision with the centrality information
-  float getCentrality(Collisions::iterator const& collision)
-  {
-    float cent = -999.;
-    switch (centEstimator) {
-      case CentralityEstimator::FT0C:
-        cent = collision.centFT0C();
-        break;
-      case CentralityEstimator::FT0M:
-        cent = collision.centFT0M();
-        break;
-      default:
-        LOG(warning) << "Centrality estimator not valid. Possible values are T0C, T0M. Fallback to T0C";
-        cent = collision.centFT0C();
-        break;
-    }
-    return cent;
-  }
-
-  /// Get the centrality
-  /// \param collision is the collision with the centrality information
-  float getCentralityMc(McCollisions::iterator const& collision)
+  template <typename Coll>
+  float getCentrality(Coll::iterator const& collision)
   {
     float cent = -999.;
     switch (centEstimator) {
