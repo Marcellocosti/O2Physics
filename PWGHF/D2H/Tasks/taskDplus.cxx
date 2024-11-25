@@ -17,10 +17,13 @@
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 /// \author Luca Aglietta <luca.aglietta@cern.ch>, University and INFN Torino
 
+#include <iostream>
+
 #include "CommonConstants/PhysicsConstants.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
 #include "Framework/runDataProcessing.h"
+#include "Framework/RunningWorkflowInfo.h"
 
 #include "PWGHF/Core/HfHelper.h"
 #include "PWGHF/DataModel/CandidateReconstructionTables.h"
@@ -523,6 +526,13 @@ struct HfTaskDplus {
     auto recoCandDplusMcRecoColls = recoDPlusCandidates->sliceByCached(aod::mccollisionlabel::mcCollisionId, mccollision.globalIndex(), cache);
     auto recoBkgCandDplusMcGenColls = recoBkgCandidates->sliceByCached(aod::mccollisionlabel::mcCollisionId, mccollision.globalIndex(), cache);
     auto genCandDplusMcGenColls = mcParticles.sliceByCached(aod::mccollisionlabel::mcCollisionId, mccollision.globalIndex(), cache);
+    // std::cout << "CandDplusMcReco: " << CandDplusMcReco->size() << std::endl;
+    // std::cout << "McParticles: " << McParticles->size() << std::endl;
+    std::cout << "recoDPlusCandidates: " << recoDPlusCandidates.size() << std::endl;
+    std::cout << "recoBkgCandidates: " << recoBkgCandidates.size() << std::endl;
+    std::cout << "recoCandDplusMcRecoColls: " << recoCandDplusMcRecoColls.size() << std::endl;
+    std::cout << "recoBkgCandDplusMcGenColls: " << recoBkgCandDplusMcGenColls.size() << std::endl;
+    std::cout << "genCandDplusMcGenColls: " << genCandDplusMcGenColls.size() << std::endl;
     runMCAnalysis<false, true>(mccollision, recoCandDplusMcRecoColls, recoBkgCandDplusMcGenColls, genCandDplusMcGenColls);
   }
   PROCESS_SWITCH(HfTaskDplus, processMc, "Process MC w/o ML", false);

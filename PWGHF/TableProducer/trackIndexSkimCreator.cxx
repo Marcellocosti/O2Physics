@@ -960,7 +960,6 @@ struct HfTrackIndexSkimCreatorTagSelTracks {
                     TracksWithSelAndDca const& tracks,
                     aod::BCsWithTimestamps const& bcWithTimeStamps)
   {
-    // LOG(info) << "Processing no pid";
     rowSelectedTrack.reserve(tracks.size());
     // prepare vectors to cache quantities needed for PV refit
     std::vector<std::array<float, 2>> pvRefitDcaPerTrack{};
@@ -974,7 +973,6 @@ struct HfTrackIndexSkimCreatorTagSelTracks {
       tabPvRefitTrack.reserve(numTracks);
     }
 
-    // LOG(info) << "Looping over collisions";
     for (const auto& collision : collisions) {
       auto thisCollId = collision.globalIndex();
       auto groupedTrackIndices = trackIndices.sliceBy(trackIndicesPerCollision, thisCollId);
@@ -985,7 +983,6 @@ struct HfTrackIndexSkimCreatorTagSelTracks {
     if (config.doPvRefit) { /// fill table with PV refit info (it has to be filled per track and not track index)
       fillPvRefitTable(pvRefitDcaPerTrack, pvRefitPvCoordPerTrack, pvRefitPvCovMatrixPerTrack);
     }
-    // LOG(info) << "Ended processing no pid";
   }
   PROCESS_SWITCH(HfTrackIndexSkimCreatorTagSelTracks, processNoPid, "Process without PID selections", true);
 
@@ -2023,7 +2020,6 @@ struct HfTrackIndexSkimCreator {
     }
     */
 
-    LOG(info) << "Entered run2And3Prongs";
     for (const auto& collision : collisions) {
 
       /// retrieve PV contributors for the current collision
@@ -2061,7 +2057,6 @@ struct HfTrackIndexSkimCreator {
 
       // auto centrality = collision.centV0M(); //FIXME add centrality when option for variations to the process function appears
 
-      // LOG(info) << "CIAO1";
       int n2ProngBit = BIT(kN2ProngDecays) - 1; // bit value for 2-prong candidates where each candidate is one bit and they are all set to 1
       int n3ProngBit = BIT(kN3ProngDecays) - 1; // bit value for 3-prong candidates where each candidate is one bit and they are all set to 1
 
@@ -2079,21 +2074,15 @@ struct HfTrackIndexSkimCreator {
         cutStatus3Prong[iDecay3P] = std::vector<bool>(kNCuts3Prong[iDecay3P], true);
       }
 
-      // LOG(info) << "CIAO2";
       int whichHypo2Prong[kN2ProngDecays + 1]; // we also put D0 for D* in the last slot
       int whichHypo3Prong[kN3ProngDecays];
 
       // set the magnetic field from CCDB
-      // LOG(info) << "CIAO21";
       auto bc = collision.bc_as<o2::aod::BCsWithTimestamps>();
-      // LOG(info) << "CIAO22";
       initCCDB(bc, runNumber, ccdb, config.isRun2 ? config.ccdbPathGrp : config.ccdbPathGrpMag, lut, config.isRun2);
-      // LOG(info) << "CIAO23";
       df2.setBz(o2::base::Propagator::Instance()->getNominalBz());
-      // LOG(info) << "CIAO24";
       df3.setBz(o2::base::Propagator::Instance()->getNominalBz());
-      // LOG(info) << "CIAO3";
-
+      
       // used to calculate number of candidiates per event
       auto nCand2 = rowTrackIndexProng2.lastIndex();
       auto nCand3 = rowTrackIndexProng3.lastIndex();
@@ -2109,7 +2098,6 @@ struct HfTrackIndexSkimCreator {
       auto groupedTrackIndicesPos1 = positiveFor2And3Prongs->sliceByCached(aod::track::collisionId, collision.globalIndex(), cache);
       int lastFilledD0 = -1; // index to be filled in table for D* mesons
       for (auto trackIndexPos1 = groupedTrackIndicesPos1.begin(); trackIndexPos1 != groupedTrackIndicesPos1.end(); ++trackIndexPos1) {
-        // LOG(info) << "POSITIVE TRACKS";
         auto trackPos1 = trackIndexPos1.template track_as<TTracks>();
 
         // retrieve the selection flag that corresponds to this collision
@@ -2126,7 +2114,6 @@ struct HfTrackIndexSkimCreator {
         }
 
         // first loop over negative tracks
-        // LOG(info) << "NEGATIVE TRACKS";
         auto groupedTrackIndicesNeg1 = negativeFor2And3Prongs->sliceByCached(aod::track::collisionId, collision.globalIndex(), cache);
         for (auto trackIndexNeg1 = groupedTrackIndicesNeg1.begin(); trackIndexNeg1 != groupedTrackIndicesNeg1.end(); ++trackIndexNeg1) {
           auto trackNeg1 = trackIndexNeg1.template track_as<TTracks>();
@@ -2349,6 +2336,7 @@ struct HfTrackIndexSkimCreator {
             }
           }
 
+
           if (config.do3Prong == 1 && is2ProngCandidateGoodFor3Prong) { // if 3 prongs are enabled and the first 2 tracks are selected for the 3-prong channels
             // second loop over positive tracks
             for (auto trackIndexPos2 = trackIndexPos1 + 1; trackIndexPos2 != groupedTrackIndicesPos1.end(); ++trackIndexPos2) {
@@ -2515,7 +2503,7 @@ struct HfTrackIndexSkimCreator {
 
               // 3-prong selections after secondary vertex
               applySelection3Prong(pVecCandProng3Pos, secondaryVertex3, pvRefitCoord3Prong2Pos1Neg, cutStatus3Prong, isSelected3ProngCand);
-
+              
               std::array<std::vector<float>, kN3ProngDecays> mlScores3Prongs;
               if (config.applyMlForHfFilters) {
                 std::vector<float> inputFeatures{trackParVarPcaPos1.getPt(), dcaInfoPos1[0], dcaInfoPos1[1], trackParVarPcaNeg1.getPt(), dcaInfoNeg1[0], dcaInfoNeg1[1], trackParVarPcaPos2.getPt(), dcaInfoPos2[0], dcaInfoPos2[1]};
@@ -2550,7 +2538,7 @@ struct HfTrackIndexSkimCreator {
                 rowProng3CutStatus(Prong3CutStatus[0], Prong3CutStatus[1], Prong3CutStatus[2], Prong3CutStatus[3]); // FIXME when we can do this by looping over kN3ProngDecays
               }
 
-              // fill histograms
+              / fill histograms
               if (config.fillHistograms) {
                 registry.fill(HIST("hVtx3ProngX"), secondaryVertex3[0]);
                 registry.fill(HIST("hVtx3ProngY"), secondaryVertex3[1]);
@@ -2916,7 +2904,6 @@ struct HfTrackIndexSkimCreator {
             }
           } // end of D*
         }
-        // LOG(info) << "Ended loop";
       }
 
       int nTracks = 0;
@@ -2932,7 +2919,6 @@ struct HfTrackIndexSkimCreator {
         registry.fill(HIST("hNCand3ProngVsNTracks"), nTracks, nCand3);
       }
     }
-    // LOG(info) << "Ended run2And3Prongs";
   } /// end of run2And3Prongs function
 
   void processNo2And3Prongs(SelectedCollisions const&)
@@ -2957,9 +2943,7 @@ struct HfTrackIndexSkimCreator {
     FilteredTrackAssocSel const& trackIndices,
     aod::TracksWCovDcaExtra const& tracks)
   {
-    // LOG(info) << "Starting run2and3prongs";
     run2And3Prongs(collisions, bcWithTimeStamps, trackIndices, tracks);
-    // LOG(info) << "Ended run2and3prongs";
   }
   PROCESS_SWITCH(HfTrackIndexSkimCreator, process2And3ProngsNoPvRefit, "Process 2-prong and 3-prong skim without PV refit", true);
 };
