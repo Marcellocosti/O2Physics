@@ -503,27 +503,44 @@ struct HfTaskDplus {
   // process functions
   void processData(CandDplusData const& candidates)
   {
-    runDataAnalysis<false, true>(candidates);
+    if (isPbPbColl) {
+      runDataAnalysis<false, true>(candidates);
+    } else {
+      runDataAnalysis<false, false>(candidates);
+    }
+    // runDataAnalysis<false, isPbPbColl.value>(candidates);
   }
   PROCESS_SWITCH(HfTaskDplus, processData, "Process data w/o ML", true);
 
   void processDataWithMl(CandDplusDataWithMl const& candidates)
   {
-    runDataAnalysis<true, true>(candidates);
+    if (isPbPbColl) {
+      runDataAnalysis<true, true>(candidates);
+    } else { 
+      runDataAnalysis<true, false>(candidates);
+    }
   }
   PROCESS_SWITCH(HfTaskDplus, processDataWithMl, "Process data with ML", false);
 
   void processMc(CandDplusMcReco const& candidates,
                  McParticles const& mcParticles)
   {
-    runMCAnalysis<false, true>(candidates, mcParticles);
+    if (isPbPbColl) {
+      runMCAnalysis<false, true>(candidates, mcParticles);
+    } else { 
+      runMCAnalysis<false, false>(candidates, mcParticles);
+    }
   }
   PROCESS_SWITCH(HfTaskDplus, processMc, "Process MC w/o ML", false);
 
   void processMcWithMl(CandDplusMcRecoWithMl const& candidates,
                        McParticles const& mcParticles)
   {
-    runMCAnalysis<true, true>(candidates, mcParticles);
+    if (isPbPbColl) {
+      runMCAnalysis<true, true>(candidates, mcParticles);
+    } else {
+      runMCAnalysis<true, false>(candidates, mcParticles);
+    }
   }
   PROCESS_SWITCH(HfTaskDplus, processMcWithMl, "Process MC with ML", false);
 };
