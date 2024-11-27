@@ -38,8 +38,8 @@ struct HfTaskDplus {
   Configurable<int> selectionFlagDplus{"selectionFlagDplus", 7, "Selection Flag for DPlus"}; // 7 corresponds to topo+PID cuts
   Configurable<double> yCandGenMax{"yCandGenMax", 0.5, "max. gen particle rapidity"};
   Configurable<double> yCandRecoMax{"yCandRecoMax", 0.8, "max. cand. rapidity"};
-  Configurable<int> centEstimator{"centEstimator", 2, "Centrality estimation (None: 0, FT0C: 1, FT0M: 2)"};
-  Configurable<int> occEstimator{"occEstimator", 1, "Occupancy estimation (None: 0, ITS: 1, FT0C: 2)"};
+  Configurable<int> centEstimator{"centEstimator", 0, "Centrality estimation (None: 0, FT0C: 1, FT0M: 2)"};
+  Configurable<int> occEstimator{"occEstimator", 0, "Occupancy estimation (None: 0, ITS: 1, FT0C: 2)"};
   Configurable<std::vector<double>> binsPt{"binsPt", std::vector<double>{hf_cuts_dplus_to_pi_k_pi::vecBinsPt}, "pT bin limits"};
   Configurable<std::vector<int>> classMl{"classMl", {0, 1, 2}, "Indexes of ML scores to be stored. Three indexes max."};
   Configurable<bool> isPbPbColl{"isPbPbColl", 0, "Flag to separate pp and PbPb analyses"};
@@ -47,7 +47,7 @@ struct HfTaskDplus {
   ConfigurableAxis thnConfigAxisCent{"thnConfigAxisCent", {10000, 0., 100.}, ""};
   ConfigurableAxis thnConfigAxisOccupancyITS{"thnConfigAxisOccupancyITS", {14, 0, 14000}, ""};
   ConfigurableAxis thnConfigAxisOccupancyFT0C{"thnConfigAxisOccupancyFT0C", {14, 0, 140000}, ""};
-  ConfigurableAxis thnConfigAxisPtBHad{"axisPtBHad", {0, 0., 10}, "axis for pt of B hadron decayed into D candidate"};
+  ConfigurableAxis thnConfigAxisPtBHad{"axisPtBHad", {25, 0., 50}, "axis for pt of B hadron decayed into D candidate"};
   ConfigurableAxis axisMlScore0{"axisMlScore0", {100, 0., 1.}, "axis for ML output score 0"};
   ConfigurableAxis axisMlScore1{"axisMlScore1", {100, 0., 1.}, "axis for ML output score 1"};
   ConfigurableAxis axisMlScore2{"axisMlScore2", {100, 0., 1.}, "axis for ML output score 2"};
@@ -174,7 +174,7 @@ struct HfTaskDplus {
       }
       axesFD.insert(axes.end(), {thnAxisPtBHad});
       registry.add("hSparseMassPrompt", "THn for Dplus Prompt", HistType::kTHnSparseF, axes);
-      registry.add("hSparseMassFD", "THn for Dplus FD", HistType::kTHnSparseF, axes);
+      registry.add("hSparseMassFD", "THn for Dplus FD", HistType::kTHnSparseF, axesFD);
       registry.add("hSparseMassBkg", "THn for Dplus Bkg", HistType::kTHnSparseF, axes);
     }
   }
@@ -230,17 +230,17 @@ struct HfTaskDplus {
         registry.fill(HIST("hSparseMass"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2]);
       }
       if (isPbPb && centEstimator != 0 && occEstimator == 0) {
-       registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality);
+       registry.fill(HIST("hSparseMass"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality);
       }
       if (isPbPb && centEstimator == 0 && occEstimator != 0) {
-       registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], occupancy);
+       registry.fill(HIST("hSparseMass"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], occupancy);
       }
       if (isPbPb && centEstimator != 0 && occEstimator != 0) {
-       registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality, occupancy);
+       registry.fill(HIST("hSparseMass"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality, occupancy);
       }
     } else {
       if constexpr (isMatched) {
-        if (isPbPb) {
+        if (isPbPb && (centEstimator != 0 || occEstimator != 0)) {
           if (candidate.originMcRec() == RecoDecay::OriginType::Prompt) {
             if (centEstimator != 0 && occEstimator == 0) {
               registry.fill(HIST("hSparseMassPrompt"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality);
@@ -277,7 +277,7 @@ struct HfTaskDplus {
           if (candidate.originMcRec() == RecoDecay::OriginType::Prompt) {
             registry.fill(HIST("hSparseMassPrompt"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2]);
           } else if (candidate.originMcRec() == RecoDecay::OriginType::NonPrompt) {
-            registry.fill(HIST("hSparseMassFD"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2]);
+            registry.fill(HIST("hSparseMassFD"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], ptbhad);
           }
           else {
             registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2]);
@@ -364,7 +364,6 @@ struct HfTaskDplus {
 
     float cent{-1};
     float occ{-1};
-    float ptBHad{-1};
     if constexpr (!fillMl) {
       for (const auto& candidate : selectedDPlusCandidates) {
         if ((yCandRecoMax >= 0. && std::abs(hfHelper.yDplus(candidate)) > yCandRecoMax)) {
@@ -373,6 +372,7 @@ struct HfTaskDplus {
         fillHisto(candidate);
       }
     } else {
+      float ptBHad{-1};
       for (const auto& candidate : selectedDPlusCandidatesWithMl) {
         if ((yCandRecoMax >= 0. && std::abs(hfHelper.yDplus(candidate)) > yCandRecoMax)) {
           continue;
@@ -501,18 +501,17 @@ struct HfTaskDplus {
   }
 
   // process functions
-  void processData(CandDplusData const& candidates)
+  void processData(CandDplusData const& candidates, CollisionsCent const&)
   {
     if (isPbPbColl) {
       runDataAnalysis<false, true>(candidates);
     } else {
       runDataAnalysis<false, false>(candidates);
     }
-    // runDataAnalysis<false, isPbPbColl.value>(candidates);
   }
   PROCESS_SWITCH(HfTaskDplus, processData, "Process data w/o ML", true);
 
-  void processDataWithMl(CandDplusDataWithMl const& candidates)
+  void processDataWithMl(CandDplusDataWithMl const& candidates, CollisionsCent const&)
   {
     if (isPbPbColl) {
       runDataAnalysis<true, true>(candidates);
@@ -523,7 +522,8 @@ struct HfTaskDplus {
   PROCESS_SWITCH(HfTaskDplus, processDataWithMl, "Process data with ML", false);
 
   void processMc(CandDplusMcReco const& candidates,
-                 McParticles const& mcParticles)
+                 McParticles const& mcParticles,
+                 CollisionsCent const&)
   {
     if (isPbPbColl) {
       runMCAnalysis<false, true>(candidates, mcParticles);
@@ -534,7 +534,8 @@ struct HfTaskDplus {
   PROCESS_SWITCH(HfTaskDplus, processMc, "Process MC w/o ML", false);
 
   void processMcWithMl(CandDplusMcRecoWithMl const& candidates,
-                       McParticles const& mcParticles)
+                       McParticles const& mcParticles,
+                       CollisionsCent const&)
   {
     if (isPbPbColl) {
       runMCAnalysis<true, true>(candidates, mcParticles);
