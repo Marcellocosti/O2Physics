@@ -38,8 +38,8 @@ struct HfTaskDplus {
   Configurable<int> selectionFlagDplus{"selectionFlagDplus", 7, "Selection Flag for DPlus"}; // 7 corresponds to topo+PID cuts
   Configurable<double> yCandGenMax{"yCandGenMax", 0.5, "max. gen particle rapidity"};
   Configurable<double> yCandRecoMax{"yCandRecoMax", 0.8, "max. cand. rapidity"};
-  Configurable<int> centEstimator{"centEstimator", 2, "Centrality estimation (None: 0, FT0C: 1, FT0M: 2)"};
-  Configurable<int> occEstimator{"occEstimator", 1, "Occupancy estimation (None: 0, ITS: 1, FT0C: 2)"};
+  Configurable<int> centEstimator{"centEstimator", 0, "Centrality estimation (None: 0, FT0C: 1, FT0M: 2)"};
+  Configurable<int> occEstimator{"occEstimator", 0, "Occupancy estimation (None: 0, ITS: 1, FT0C: 2)"};
   Configurable<std::vector<double>> binsPt{"binsPt", std::vector<double>{hf_cuts_dplus_to_pi_k_pi::vecBinsPt}, "pT bin limits"};
   Configurable<std::vector<int>> classMl{"classMl", {0, 1, 2}, "Indexes of ML scores to be stored. Three indexes max."};
   Configurable<bool> isPbPbColl{"isPbPbColl", 0, "Flag to separate pp and PbPb analyses"};
@@ -47,7 +47,7 @@ struct HfTaskDplus {
   ConfigurableAxis thnConfigAxisCent{"thnConfigAxisCent", {10000, 0., 100.}, ""};
   ConfigurableAxis thnConfigAxisOccupancyITS{"thnConfigAxisOccupancyITS", {14, 0, 14000}, ""};
   ConfigurableAxis thnConfigAxisOccupancyFT0C{"thnConfigAxisOccupancyFT0C", {14, 0, 140000}, ""};
-  ConfigurableAxis thnConfigAxisPtBHad{"axisPtBHad", {0, 0., 10}, "axis for pt of B hadron decayed into D candidate"};
+  ConfigurableAxis thnConfigAxisPtBHad{"axisPtBHad", {25, 0., 50}, "axis for pt of B hadron decayed into D candidate"};
   ConfigurableAxis axisMlScore0{"axisMlScore0", {100, 0., 1.}, "axis for ML output score 0"};
   ConfigurableAxis axisMlScore1{"axisMlScore1", {100, 0., 1.}, "axis for ML output score 1"};
   ConfigurableAxis axisMlScore2{"axisMlScore2", {100, 0., 1.}, "axis for ML output score 2"};
@@ -60,6 +60,7 @@ struct HfTaskDplus {
   using CandDplusMcRecoWithMl = soa::Filtered<soa::Join<aod::HfCand3Prong, aod::HfSelDplusToPiKPi, aod::HfCand3ProngMcRec, aod::HfMlDplusToPiKPi>>;
   using McParticles = soa::Join<aod::McParticles, aod::HfCand3ProngMcGen>;
   using CollisionsCent = soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms, aod::CentFT0Cs>;
+  // using McCollisionsCent = soa::Join<aod::Collisions, aod::McCollisionLabels, aod::EvSels, aod::CentFT0Ms, aod::CentFT0Cs>;
 
   Filter filterDplusFlag = (o2::aod::hf_track_index::hfflag & static_cast<uint8_t>(BIT(aod::hf_cand_3prong::DecayType::DplusToPiKPi))) != static_cast<uint8_t>(0);
 
@@ -174,7 +175,7 @@ struct HfTaskDplus {
       }
       axesFD.insert(axes.end(), {thnAxisPtBHad});
       registry.add("hSparseMassPrompt", "THn for Dplus Prompt", HistType::kTHnSparseF, axes);
-      registry.add("hSparseMassFD", "THn for Dplus FD", HistType::kTHnSparseF, axes);
+      registry.add("hSparseMassFD", "THn for Dplus FD", HistType::kTHnSparseF, axesFD);
       registry.add("hSparseMassBkg", "THn for Dplus Bkg", HistType::kTHnSparseF, axes);
     }
   }
@@ -217,30 +218,40 @@ struct HfTaskDplus {
   /// \param ptbhad transverse momentum of beauty mother for nonprompt candidates
   template <bool isPbPb, bool isMc, bool isMatched, typename T1>
   void fillSparseML(const T1& candidate,
-                    float& occupancy,
                     float& centrality,
+                    float& occupancy,
                     float& ptbhad)
   {
+    LOG(info) << "Filling";
+
+    bool pbpbColl{0};
+    if constexpr (isPbPb) {
+      pbpbColl = true;
+    }
+
     std::vector<float> outputMl = {-999., -999., -999.};
     for (unsigned int iclass = 0; iclass < classMl->size(); iclass++) {
       outputMl[iclass] = candidate.mlProbDplusToPiKPi()[classMl->at(iclass)];
     }
     if constexpr (!isMc) {
-      if(!isPbPb || (centEstimator == 0 && occEstimator == 0)) {
+      if(!pbpbColl || (centEstimator == 0 && occEstimator == 0)) {
         registry.fill(HIST("hSparseMass"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2]);
       }
-      if (isPbPb && centEstimator != 0 && occEstimator == 0) {
-       registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality);
+      if (pbpbColl && centEstimator != 0 && occEstimator == 0) {
+       registry.fill(HIST("hSparseMass"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality);
       }
-      if (isPbPb && centEstimator == 0 && occEstimator != 0) {
-       registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], occupancy);
+      if (pbpbColl && centEstimator == 0 && occEstimator != 0) {
+       registry.fill(HIST("hSparseMass"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], occupancy);
       }
-      if (isPbPb && centEstimator != 0 && occEstimator != 0) {
-       registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality, occupancy);
+      if (pbpbColl && centEstimator != 0 && occEstimator != 0) {
+       registry.fill(HIST("hSparseMass"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality, occupancy);
       }
     } else {
+      LOG(info) << "Filling MC";
       if constexpr (isMatched) {
-        if (isPbPb) {
+        LOG(info) << "Filling MC matched";
+        if (pbpbColl && (centEstimator != 0 || occEstimator != 0)) {
+          LOG(info) << "Cent/occ";
           if (candidate.originMcRec() == RecoDecay::OriginType::Prompt) {
             if (centEstimator != 0 && occEstimator == 0) {
               registry.fill(HIST("hSparseMassPrompt"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality);
@@ -249,7 +260,7 @@ struct HfTaskDplus {
               registry.fill(HIST("hSparseMassPrompt"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], occupancy);
             }
             else {
-              registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality, occupancy);
+              registry.fill(HIST("hSparseMassPrompt"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], centrality, occupancy);
             }
           } else if (candidate.originMcRec() == RecoDecay::OriginType::NonPrompt) {
             if (centEstimator != 0 && occEstimator == 0) {
@@ -274,10 +285,11 @@ struct HfTaskDplus {
             }
           }
         } else {
+          LOG(info) << "No Cent/occ";
           if (candidate.originMcRec() == RecoDecay::OriginType::Prompt) {
             registry.fill(HIST("hSparseMassPrompt"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2]);
           } else if (candidate.originMcRec() == RecoDecay::OriginType::NonPrompt) {
-            registry.fill(HIST("hSparseMassFD"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2]);
+            registry.fill(HIST("hSparseMassFD"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2], ptbhad);
           }
           else {
             registry.fill(HIST("hSparseMassBkg"), hfHelper.invMassDplusToPiKPi(candidate), candidate.pt(), outputMl[0], outputMl[1], outputMl[2]);
@@ -285,6 +297,7 @@ struct HfTaskDplus {
         }
       }
     }
+    LOG(info) << "Filled";
   }
 
   // Fill histograms of quantities for the reconstructed Dplus candidates with MC matching
@@ -364,7 +377,6 @@ struct HfTaskDplus {
 
     float cent{-1};
     float occ{-1};
-    float ptBHad{-1};
     if constexpr (!fillMl) {
       for (const auto& candidate : selectedDPlusCandidates) {
         if ((yCandRecoMax >= 0. && std::abs(hfHelper.yDplus(candidate)) > yCandRecoMax)) {
@@ -373,6 +385,7 @@ struct HfTaskDplus {
         fillHisto(candidate);
       }
     } else {
+      float ptBHad{-1};
       for (const auto& candidate : selectedDPlusCandidatesWithMl) {
         if ((yCandRecoMax >= 0. && std::abs(hfHelper.yDplus(candidate)) > yCandRecoMax)) {
           continue;
@@ -414,15 +427,20 @@ struct HfTaskDplus {
         fillHistoMCRec<false>(candidate);
       }
     } else {
+      bool pbpbColl{0};
+      if constexpr (isPbPb) {
+        pbpbColl = true;
+      }
       float ptBHad{-1};
+      LOG(info) << "n recocands size: " << recoDPlusCandidatesWithMl.size();
       for (const auto& candidate : recoDPlusCandidatesWithMl) {
         if ((yCandRecoMax >= 0. && std::abs(hfHelper.yDplus(candidate)) > yCandRecoMax)) {
           continue;
         }
-        if (isPbPb && centEstimator != 0) {
+        if (pbpbColl && centEstimator != 0) {
           cent = getCentrality(candidate);
         }
-        if (isPbPb && occEstimator != 0) {
+        if (pbpbColl && occEstimator != 0) {
           occ = getOccupancy(candidate);
         }
         fillHisto(candidate);
@@ -432,14 +450,15 @@ struct HfTaskDplus {
       }
       // Bkg
       ptBHad=-1;
+      LOG(info) << "n bkg size: " << recoBkgCandidatesWithMl.size();
       for (const auto& candidate : recoBkgCandidatesWithMl) {
         if ((yCandRecoMax >= 0. && std::abs(hfHelper.yDplus(candidate)) > yCandRecoMax)) {
           continue;
         }
-        if (isPbPb && centEstimator != 0) {
+        if (pbpbColl && centEstimator != 0) {
           cent = getCentrality(candidate);
         }
-        if (isPbPb && occEstimator != 0) {
+        if (pbpbColl && occEstimator != 0) {
           occ = getOccupancy(candidate);
         }
         fillHistoMCRec<false>(candidate);
@@ -447,6 +466,7 @@ struct HfTaskDplus {
       }
     }
     // MC gen.
+    LOG(info) << "n mcparticles size: " << mcParticles.size();
     for (const auto& particle : mcParticles) {
       auto yGen = RecoDecay::y(particle.pVector(), o2::constants::physics::MassDPlus);
       if ((yCandGenMax >= 0. && std::abs(yGen) > yCandGenMax) || (std::abs(particle.flagMcMatchGen()) != 1 << aod::hf_cand_3prong::DecayType::DplusToPiKPi)) {
@@ -493,7 +513,7 @@ struct HfTaskDplus {
         cent = collision.centFT0M();
         break;
       default:
-        LOG(warning) << "Centrality estimator not valid. Possible values are T0C, T0M. Fallback to T0C";
+        LOG(warning) << "Centrality estimator not valid. Possible values are FT0C, FT0M. Fallback to FT0C";
         cent = collision.centFT0C();
         break;
     }
@@ -501,18 +521,17 @@ struct HfTaskDplus {
   }
 
   // process functions
-  void processData(CandDplusData const& candidates)
+  void processData(CandDplusData const& candidates, CollisionsCent const&)
   {
     if (isPbPbColl) {
       runDataAnalysis<false, true>(candidates);
     } else {
       runDataAnalysis<false, false>(candidates);
     }
-    // runDataAnalysis<false, isPbPbColl.value>(candidates);
   }
   PROCESS_SWITCH(HfTaskDplus, processData, "Process data w/o ML", true);
 
-  void processDataWithMl(CandDplusDataWithMl const& candidates)
+  void processDataWithMl(CandDplusDataWithMl const& candidates, CollisionsCent const&)
   {
     if (isPbPbColl) {
       runDataAnalysis<true, true>(candidates);
@@ -523,7 +542,8 @@ struct HfTaskDplus {
   PROCESS_SWITCH(HfTaskDplus, processDataWithMl, "Process data with ML", false);
 
   void processMc(CandDplusMcReco const& candidates,
-                 McParticles const& mcParticles)
+                 McParticles const& mcParticles,
+                 CollisionsCent const&)
   {
     if (isPbPbColl) {
       runMCAnalysis<false, true>(candidates, mcParticles);
@@ -534,11 +554,15 @@ struct HfTaskDplus {
   PROCESS_SWITCH(HfTaskDplus, processMc, "Process MC w/o ML", false);
 
   void processMcWithMl(CandDplusMcRecoWithMl const& candidates,
-                       McParticles const& mcParticles)
+                       McParticles const& mcParticles,
+                       CollisionsCent const&) 
   {
+    LOG(info) << "Process MC with ML";
     if (isPbPbColl) {
+      LOG(info) << "PbPb";
       runMCAnalysis<true, true>(candidates, mcParticles);
     } else {
+      LOG(info) << "pp";
       runMCAnalysis<true, false>(candidates, mcParticles);
     }
   }
