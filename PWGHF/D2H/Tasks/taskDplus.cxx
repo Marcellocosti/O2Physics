@@ -60,7 +60,7 @@ struct HfTaskDplus {
   using CandDplusMcRecoWithMl = soa::Filtered<soa::Join<aod::HfCand3Prong, aod::HfSelDplusToPiKPi, aod::HfCand3ProngMcRec, aod::HfMlDplusToPiKPi>>;
   using McParticles = soa::Join<aod::McParticles, aod::HfCand3ProngMcGen>;
   using CollisionsCent = soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms, aod::CentFT0Cs>;
-  // using McCollisionsCent = soa::Join<aod::Collisions, aod::McCollisionLabels, aod::EvSels, aod::CentFT0Ms, aod::CentFT0Cs>;
+  using McCollisionsCent = soa::Join<aod::Collisions, aod::McCollisionLabels, aod::EvSels, aod::CentFT0Ms, aod::CentFT0Cs>;
 
   Filter filterDplusFlag = (o2::aod::hf_track_index::hfflag & static_cast<uint8_t>(BIT(aod::hf_cand_3prong::DecayType::DplusToPiKPi))) != static_cast<uint8_t>(0);
 
@@ -385,15 +385,19 @@ struct HfTaskDplus {
         fillHisto(candidate);
       }
     } else {
+      bool pbpbColl{0};
+      if constexpr (isPbPb) {
+        pbpbColl = true;
+      }
       float ptBHad{-1};
       for (const auto& candidate : selectedDPlusCandidatesWithMl) {
         if ((yCandRecoMax >= 0. && std::abs(hfHelper.yDplus(candidate)) > yCandRecoMax)) {
           continue;
         }
-        if (isPbPb && centEstimator != 0) {
+        if (pbpbColl && centEstimator != 0) {
           cent = getCentrality(candidate);
         }
-        if (isPbPb && occEstimator != 0) {
+        if (pbpbColl && occEstimator != 0) {
           occ = getOccupancy(candidate);
         }
         fillHisto(candidate);
@@ -482,18 +486,34 @@ struct HfTaskDplus {
   float getOccupancy(Cand const& candidate)
   {
     float occupancy = -999.;
+    if constexpr (std::is_same_v<Cand, CandDplusData::iterator>) {
       auto collision = candidate.template collision_as<CollisionsCent>();
-    switch (occEstimator) {
-      case 1:
-        occupancy = collision.trackOccupancyInTimeRange();
-        break;
-      case 2:
-        occupancy = collision.ft0cOccupancyInTimeRange();
-        break;
-      default:
-        LOG(warning) << "Occupancy estimator not valid. Possible values are ITS or FT0C. Fallback to ITS";
-        occupancy = collision.trackOccupancyInTimeRange();
-        break;
+      switch (occEstimator) {
+        case 1:
+          occupancy = collision.trackOccupancyInTimeRange();
+          break;
+        case 2:
+          occupancy = collision.ft0cOccupancyInTimeRange();
+          break;
+        default:
+          LOG(warning) << "Occupancy estimator not valid. Possible values are ITS or FT0C. Fallback to ITS";
+          occupancy = collision.trackOccupancyInTimeRange();
+          break;
+      }
+    } else {
+      auto collision = candidate.template collision_as<McCollisionsCent>();
+      switch (occEstimator) {
+        case 1:
+          occupancy = collision.trackOccupancyInTimeRange();
+          break;
+        case 2:
+          occupancy = collision.ft0cOccupancyInTimeRange();
+          break;
+        default:
+          LOG(warning) << "Occupancy estimator not valid. Possible values are ITS or FT0C. Fallback to ITS";
+          occupancy = collision.trackOccupancyInTimeRange();
+          break;
+      }
     }
     return occupancy;
   }
@@ -504,18 +524,34 @@ struct HfTaskDplus {
   float getCentrality(Cand const& candidate)
   {
     float cent = -999.;
+    if constexpr (std::is_same_v<Cand, CandDplusData::iterator>) {
       auto collision = candidate.template collision_as<CollisionsCent>();
-    switch (centEstimator) {
-      case CentralityEstimator::FT0C:
-        cent = collision.centFT0C();
-        break;
-      case CentralityEstimator::FT0M:
-        cent = collision.centFT0M();
-        break;
-      default:
-        LOG(warning) << "Centrality estimator not valid. Possible values are FT0C, FT0M. Fallback to FT0C";
-        cent = collision.centFT0C();
-        break;
+      switch (centEstimator) {
+        case CentralityEstimator::FT0C:
+          cent = collision.centFT0C();
+          break;
+        case CentralityEstimator::FT0M:
+          cent = collision.centFT0M();
+          break;
+        default:
+          LOG(warning) << "Centrality estimator not valid. Possible values are FT0C, FT0M. Fallback to FT0C";
+          cent = collision.centFT0C();
+          break;
+      }
+    } else {
+      auto collision = candidate.template collision_as<McCollisionsCent>();
+      switch (centEstimator) {
+        case CentralityEstimator::FT0C:
+          cent = collision.centFT0C();
+          break;
+        case CentralityEstimator::FT0M:
+          cent = collision.centFT0M();
+          break;
+        default:
+          LOG(warning) << "Centrality estimator not valid. Possible values are FT0C, FT0M. Fallback to FT0C";
+          cent = collision.centFT0C();
+          break;
+      }
     }
     return cent;
   }
@@ -543,7 +579,7 @@ struct HfTaskDplus {
 
   void processMc(CandDplusMcReco const& candidates,
                  McParticles const& mcParticles,
-                 CollisionsCent const&)
+                 McCollisionsCent const&)
   {
     if (isPbPbColl) {
       runMCAnalysis<false, true>(candidates, mcParticles);
@@ -555,7 +591,7 @@ struct HfTaskDplus {
 
   void processMcWithMl(CandDplusMcRecoWithMl const& candidates,
                        McParticles const& mcParticles,
-                       CollisionsCent const&) 
+                       McCollisionsCent const&) 
   {
     LOG(info) << "Process MC with ML";
     if (isPbPbColl) {
