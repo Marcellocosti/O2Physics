@@ -146,6 +146,10 @@ struct HfTaskPidStudies {
   Configurable<float> massOmegaMin{"massOmegaMin", 1.5, "Minimum mass for omega"};
   Configurable<float> massOmegaMax{"massOmegaMax", 1.8, "Maximum mass for omega"};
   Configurable<float> radiusMax{"radiusMax", 2.3, "Maximum decay radius (cm)"};
+  Configurable<float> cpaMin{"cpaMin", 0.9, "Minimum value for cpa"};
+  Configurable<float> v0CpaMin{"v0CpaMin", 0.9, "Minimum value for cpa of V0 daug of casc"};
+  Configurable<float> dcaV0DaughtersMax{"dcaV0DaughtersMax", 0.9, "Max DCA for v0 daughters"};
+  Configurable<float> dcaV0ToPvMin{"dcaV0ToPvMin", 0.9, "Min DCA of the v0 wrt. PV"};
   Configurable<float> qtArmenterosMinForK0{"qtArmenterosMinForK0", 0.12, "Minimum Armenteros' qt for K0"};
   Configurable<float> qtArmenterosMaxForLambda{"qtArmenterosMaxForLambda", 0.12, "Minimum Armenteros' qt for (anti)Lambda"};
   Configurable<float> downSampleBkgFactor{"downSampleBkgFactor", 1., "Fraction of candidates to keep"};
@@ -282,6 +286,15 @@ struct HfTaskPidStudies {
     if (v0.v0radius() > radiusMax) {
       return false;
     }
+    if (v0.v0cosPA() < v0CpaMin) {
+      return false;
+    }
+    if (v0.dcaV0daughters() > dcaV0DaughtersMax) {
+      return false;
+    }
+    if (v0.dcav0topv() < dcaV0ToPvMin) {
+      return false;
+    }
     return true;
   }
 
@@ -298,6 +311,15 @@ struct HfTaskPidStudies {
     if (v0.v0radius() > radiusMax) {
       return false;
     }
+    if (v0.v0cosPA() < v0CpaMin) {
+      return false;
+    }
+    if (v0.dcaV0daughters() > dcaV0DaughtersMax) {
+      return false;
+    }
+    if (v0.dcav0topv() < dcaV0ToPvMin) {
+      return false;
+    }
     return true;
   }
 
@@ -311,6 +333,19 @@ struct HfTaskPidStudies {
       return false;
     }
     if (casc.cascradius() > radiusMax) {
+      return false;
+    }
+    const auto& coll = casc.template collision_as<CollSels>();
+    if (casc.casccosPA(coll.posX(), coll.posY(), coll.posZ()) < cpaMin) {
+      return false;
+    }
+    if (casc.v0cosPA(coll.posX(), coll.posY(), coll.posZ()) < v0CpaMin) {
+      return false;
+    }
+    if (casc.dcaV0daughters() > dcaV0DaughtersMax) {
+      return false;
+    }
+    if (casc.dcav0topv(coll.posX(), coll.posY(), coll.posZ()) < dcaV0ToPvMin) {
       return false;
     }
     return true;
