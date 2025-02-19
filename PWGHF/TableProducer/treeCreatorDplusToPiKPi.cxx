@@ -81,20 +81,20 @@ DECLARE_SOA_COLUMN(Ct, ct, float);                                              
 // Events
 DECLARE_SOA_COLUMN(IsEventReject, isEventReject, int); //! Event rejection flag
 DECLARE_SOA_COLUMN(RunNumber, runNumber, int);         //! Run number
-DECLARE_SOA_COLUMN(Centrality, centrality, float);    //! Collision centrality (for reco MC)
+DECLARE_SOA_COLUMN(Centrality, centrality, float);     //! Collision centrality (for reco MC)
 // ML scores
-DECLARE_SOA_COLUMN(BkgScore, bkgScore, float);       //! Bkg score (for reco MC candidates)
-DECLARE_SOA_COLUMN(FdScore, fdScore, float);         //! FD score (for reco MC candidates)
+DECLARE_SOA_COLUMN(BkgScore, bkgScore, float); //! Bkg score (for reco MC candidates)
+DECLARE_SOA_COLUMN(FdScore, fdScore, float);   //! FD score (for reco MC candidates)
 } // namespace full
 DECLARE_SOA_TABLE(HfCandDpMls, "AOD", "HFCANDDPML",
-  full::M,
-  full::Pt,
-  full::Centrality,
-  full::BkgScore,
-  full::FdScore,
-  hf_cand_3prong::FlagMcMatchRec,
-  hf_cand_3prong::OriginMcRec,
-  hf_cand_3prong::FlagMcDecayChanRec)
+                  full::M,
+                  full::Pt,
+                  full::Centrality,
+                  full::BkgScore,
+                  full::FdScore,
+                  hf_cand_3prong::FlagMcMatchRec,
+                  hf_cand_3prong::OriginMcRec,
+                  hf_cand_3prong::FlagMcDecayChanRec)
 DECLARE_SOA_TABLE(HfCandDpLites, "AOD", "HFCANDDPLITE",
                   hf_cand::Chi2PCA,
                   full::DecayLength,
@@ -302,18 +302,18 @@ struct HfTreeCreatorDplusToPiKPi {
       originMc = candidate.originMcRec();
       channelMc = candidate.flagMcDecayChanRec();
     }
-    
+
     std::vector<float> outputMl = {-999., -999.};
     if constexpr (doMl) {
       for (unsigned int iclass = 0; iclass < classMl->size(); iclass++) {
         outputMl[iclass] = candidate.mlProbDplusToPiKPi()[classMl->at(iclass)];
       }
     }
-    
+
     auto prong0 = candidate.template prong0_as<TracksWPid>();
     auto prong1 = candidate.template prong1_as<TracksWPid>();
     auto prong2 = candidate.template prong2_as<TracksWPid>();
-    
+
     if (fillCandidateLiteTable) {
       rowCandidateLite(
         candidate.chi2PCA(),
@@ -360,20 +360,19 @@ struct HfTreeCreatorDplusToPiKPi {
         flagMc,
         originMc,
         channelMc);
-      } else if (fillOnlySignalMl) {
-        auto collision = candidate.template collision_as<McRecoCollisionsCent>();
-        double cent = getCentralityColl(collision, CentralityEstimator::FT0C);
-        rowCandidateMl(
-          hfHelper.invMassDplusToPiKPi(candidate),
-          candidate.pt(),
-          cent,
-          outputMl[0],
-          outputMl[1],
-          flagMc,
-          originMc,
-          channelMc
-        );
-      } else {
+    } else if (fillOnlySignalMl) {
+      auto collision = candidate.template collision_as<McRecoCollisionsCent>();
+      double cent = getCentralityColl(collision, CentralityEstimator::FT0C);
+      rowCandidateMl(
+        hfHelper.invMassDplusToPiKPi(candidate),
+        candidate.pt(),
+        cent,
+        outputMl[0],
+        outputMl[1],
+        flagMc,
+        originMc,
+        channelMc);
+    } else {
       rowCandidateFull(
         candidate.collision().bcId(),
         candidate.collision().numContrib(),
@@ -454,8 +453,8 @@ struct HfTreeCreatorDplusToPiKPi {
         flagMc,
         originMc,
         channelMc);
-      }
     }
+  }
 
   void processData(aod::Collisions const& collisions,
                    soa::Filtered<soa::Join<aod::HfCand3Prong, aod::HfSelDplusToPiKPi>> const& candidates,
@@ -536,8 +535,7 @@ struct HfTreeCreatorDplusToPiKPi {
         }
         fillCandidateTable<true, true>(candidate);
       }
-    } 
-    else {
+    } else {
       if (fillCandidateLiteTable) {
         rowCandidateLite.reserve(candidates.size());
       } else {
