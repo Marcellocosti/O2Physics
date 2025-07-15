@@ -245,6 +245,13 @@ DECLARE_SOA_COLUMN(TOFNSigmaKaProng2, tofNSigmaKaProng2, float); //! NsigmaTOFKa
 DECLARE_SOA_COLUMN(TOFNSigmaPrProng0, tofNSigmaPrProng0, float); //! NsigmaTOFPr for prong0, o2-linter: disable=name/o2-column (written to disk)
 DECLARE_SOA_COLUMN(TOFNSigmaPrProng1, tofNSigmaPrProng1, float); //! NsigmaTOFPr for prong1, o2-linter: disable=name/o2-column (written to disk)
 DECLARE_SOA_COLUMN(TOFNSigmaPrProng2, tofNSigmaPrProng2, float); //! NsigmaTOFPr for prong2, o2-linter: disable=name/o2-column (written to disk)
+DECLARE_SOA_COLUMN(TPCNSigmaPiSoftPi, tpcNSigmaPiSoftPi, float); //! NsigmaTPCPi for soft pi, o2-linter: disable=name/o2-column (written to disk)
+DECLARE_SOA_COLUMN(TPCNSigmaKaSoftPi, tpcNSigmaKaSoftPi, float); //! NsigmaTPCKa for soft pi, o2-linter: disable=name/o2-column (written to disk)
+DECLARE_SOA_COLUMN(TPCNSigmaPrSoftPi, tpcNSigmaPrSoftPi, float); //! NsigmaTPCPr for soft pi, o2-linter: disable=name/o2-column (written to disk)
+DECLARE_SOA_COLUMN(TOFNSigmaPiSoftPi, tofNSigmaPiSoftPi, float); //! NsigmaTOFPi for soft pi, o2-linter: disable=name/o2-column (written to disk)
+DECLARE_SOA_COLUMN(TOFNSigmaKaSoftPi, tofNSigmaKaSoftPi, float); //! NsigmaTOFKa for soft pi, o2-linter: disable=name/o2-column (written to disk)
+DECLARE_SOA_COLUMN(TOFNSigmaPrSoftPi, tofNSigmaPrSoftPi, float); //! NsigmaTOFPr for soft pi, o2-linter: disable=name/o2-column (written to disk)
+
 // dynamic columns
 DECLARE_SOA_DYNAMIC_COLUMN(TPCTOFNSigmaPi, tpcTofNSigmaPi, //! Combination of NsigmaTPC and NsigmaTOF, o2-linter: disable=name/o2-column (written to disk)
                            [](float tpcNSigmaPi, float tofNSigmaPi) -> float { return pid_tpc_tof_utils::combineNSigma<false /*tiny*/>(tpcNSigmaPi, tofNSigmaPi); });
@@ -270,6 +277,12 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCTOFNSigmaPrProng1, tpcTofNSigmaPrProng1, //! Combi
                            [](float tpcNSigmaPr, float tofNSigmaPr) -> float { return pid_tpc_tof_utils::combineNSigma<false /*tiny*/>(tpcNSigmaPr, tofNSigmaPr); });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCTOFNSigmaPrProng2, tpcTofNSigmaPrProng2, //! Combination of NsigmaTPC and NsigmaTOF, o2-linter: disable=name/o2-column (written to disk)
                            [](float tpcNSigmaPr, float tofNSigmaPr) -> float { return pid_tpc_tof_utils::combineNSigma<false /*tiny*/>(tpcNSigmaPr, tofNSigmaPr); });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCTOFNSigmaPiSoftPi, tpcTofNSigmaPiSoftPi, //! Combination of NsigmaTPC and NsigmaTOF, o2-linter: disable=name/o2-column (written to disk)
+                           [](float tpcNSigmaPi, float tofNSigmaPi) -> float { return pid_tpc_tof_utils::combineNSigma<false /*tiny*/>(tpcNSigmaPi, tofNSigmaPi); });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCTOFNSigmaKaSoftPi, tpcTofNSigmaKaSoftPi, //! Combination of NsigmaTPC and NsigmaTOF, o2-linter: disable=name/o2-column (written to disk)
+                           [](float tpcNSigmaKa, float tofNSigmaKa) -> float { return pid_tpc_tof_utils::combineNSigma<false /*tiny*/>(tpcNSigmaKa, tofNSigmaKa); });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCTOFNSigmaPrSoftPi, tpcTofNSigmaPrSoftPi, //! Combination of NsigmaTPC and NsigmaTOF, o2-linter: disable=name/o2-column (written to disk)
+                           [](float tpcNSigmaPr, float tofNSigmaPr) -> float { return pid_tpc_tof_utils::combineNSigma<false /*tiny*/>(tpcNSigmaPr, tofNSigmaPr); });
 } // namespace hf_track_pid_reduced
 
 // CAREFUL: need to follow convention [Name = Description + 's'] in DECLARE_SOA_TABLE(Name, "AOD", Description)
@@ -292,25 +305,6 @@ DECLARE_SOA_TABLE(HfRedTracksCov, "AOD", "HFREDTRACKCOV", //! Table with track c
                   soa::Index<>,
                   HFTRACKPARCOV_COLUMNS,
                   o2::soa::Marker<1>);
-
-DECLARE_SOA_TABLE(HfRedSoftPiBases, "AOD", "HFREDSOFTPIBASE", //! Table with track information for reduced workflow
-                  soa::Index<>,
-                  hf_track_index_reduced::TrackId,
-                  hf_track_index_reduced::HfRedCollisionId,
-                  HFTRACKPAR_COLUMNS,
-                  hf_track_vars_reduced::ItsNCls,
-                  hf_track_vars_reduced::TpcNClsCrossedRows,
-                  hf_track_vars_reduced::TpcChi2NCl,
-                  aod::track::Px<aod::track::Signed1Pt, aod::track::Snp, aod::track::Alpha>,
-                  aod::track::Py<aod::track::Signed1Pt, aod::track::Snp, aod::track::Alpha>,
-                  aod::track::Pz<aod::track::Signed1Pt, track::Tgl>,
-                  aod::track::PVector<aod::track::Signed1Pt, aod::track::Snp, aod::track::Alpha, aod::track::Tgl>,
-                  o2::soa::Marker<2>);
-
-DECLARE_SOA_TABLE(HfRedSoftPiCov, "AOD", "HFREDSOFTPICOV", //! Table with track covariance information for reduced workflow
-                  soa::Index<>,
-                  HFTRACKPARCOV_COLUMNS,
-                  o2::soa::Marker<2>);
 
 // CAREFUL: need to follow convention [Name = Description + 's'] in DECLARE_SOA_TABLE(Name, "AOD", Description)
 // to call DECLARE_SOA_INDEX_COLUMN_FULL later on
@@ -548,6 +542,71 @@ DECLARE_SOA_TABLE(HfRed2ProngsMl, "AOD", "HFRED2PRONGML", //! Table with 2prong 
 
 // CAREFUL: need to follow convention [Name = Description + 's'] in DECLARE_SOA_TABLE(Name, "AOD", Description)
 // to call DECLARE_SOA_INDEX_COLUMN_FULL later on
+DECLARE_SOA_TABLE(HfRedSoftPiBases, "AOD", "HFREDSOFTPIBASE", //! Table with track information for reduced workflow
+                  soa::Index<>,
+                  hf_track_index_reduced::TrackId,
+                  hf_track_index_reduced::HfRedCollisionId,
+                  HFTRACKPAR_COLUMNS,
+                  hf_track_vars_reduced::ItsNCls,
+                  hf_track_vars_reduced::TpcNClsCrossedRows,
+                  hf_track_vars_reduced::TpcChi2NCl,
+                  aod::track::Px<aod::track::Signed1Pt, aod::track::Snp, aod::track::Alpha>,
+                  aod::track::Py<aod::track::Signed1Pt, aod::track::Snp, aod::track::Alpha>,
+                  aod::track::Pz<aod::track::Signed1Pt, track::Tgl>,
+                  aod::track::PVector<aod::track::Signed1Pt, aod::track::Snp, aod::track::Alpha, aod::track::Tgl>);
+
+DECLARE_SOA_TABLE(HfRedSoftPiCov, "AOD", "HFREDSOFTPICOV", //! Table with track covariance information for reduced workflow
+                  soa::Index<>,
+                  HFTRACKPARCOV_COLUMNS);
+
+DECLARE_SOA_TABLE(HfRedSoftPiPid, "AOD", "HFREDSOFTPIPID",
+                  soa::Index<>,
+                  hf_track_pid_reduced::TPCNSigmaPiSoftPi,
+                  hf_track_pid_reduced::TOFNSigmaPiSoftPi,
+                  hf_track_pid_reduced::TPCNSigmaKaSoftPi,
+                  hf_track_pid_reduced::TOFNSigmaKaSoftPi,
+                  hf_track_vars_reduced::HasTOF,
+                  hf_track_vars_reduced::HasTPC,
+                  hf_track_pid_reduced::TPCTOFNSigmaPiSoftPi<hf_track_pid_reduced::TPCNSigmaPiSoftPi, hf_track_pid_reduced::TOFNSigmaPiSoftPi>,
+                  hf_track_pid_reduced::TPCTOFNSigmaKaSoftPi<hf_track_pid_reduced::TPCNSigmaKaSoftPi, hf_track_pid_reduced::TOFNSigmaKaSoftPi>
+)
+
+namespace hf_track_index_reduced
+{
+DECLARE_SOA_INDEX_COLUMN_FULL(SoftPi, softPi, int, HfRedSoftPiBases, ""); //! ReducedCollision index
+}; // namespace hf_track_index_reduced
+
+// CAREFUL: need to follow convention [Name = Description + 's'] in DECLARE_SOA_TABLE(Name, "AOD", Description)
+// to call DECLARE_SOA_INDEX_COLUMN_FULL later on
+DECLARE_SOA_TABLE(HfRedDStars, "AOD", "HFREDDSTAR", //! Table with 2prong candidate information for reduced workflow
+                  o2::soa::Index<>,
+                  hf_track_index_reduced::Prong0Id, hf_track_index_reduced::Prong1Id, hf_track_index_reduced::Prong2Id, 
+                  hf_track_index_reduced::SoftPiId, hf_track_index_reduced::HfRedCollisionId,
+                  HFTRACKPAR_COLUMNS,
+                  hf_cand::XSecondaryVertex, hf_cand::YSecondaryVertex, hf_cand::ZSecondaryVertex,
+                  hf_charm_cand_reduced::InvMassHypo0, hf_charm_cand_reduced::InvMassHypo1,
+                  hf_track_vars_reduced::PtProngMin, hf_track_vars_reduced::AbsEtaProngMin,
+                  hf_track_vars_reduced::ItsNClsProngMin, hf_track_vars_reduced::TpcNClsCrossedRowsProngMin, hf_track_vars_reduced::TpcChi2NClProngMax,
+                  aod::track::Px<aod::track::Signed1Pt, aod::track::Snp, aod::track::Alpha>,
+                  aod::track::Py<aod::track::Signed1Pt, aod::track::Snp, aod::track::Alpha>,
+                  aod::track::Pz<aod::track::Signed1Pt, track::Tgl>,
+                  aod::track::PVector<aod::track::Signed1Pt, aod::track::Snp, aod::track::Alpha, aod::track::Tgl>);
+
+DECLARE_SOA_TABLE(HfRedDStarsCov, "AOD", "HFREDDSTARCOV", //! Table with DStar candidate covariance for reduced workflow
+                  o2::soa::Index<>,
+                  HFTRACKPARCOV_COLUMNS,
+                  o2::soa::Marker<1>);
+
+DECLARE_SOA_TABLE(HfRedDStarsMl, "AOD", "HFREDDSTARML", //! Table with DStar candidate ML scores
+                  hf_charm_cand_reduced::MlScoreBkgMassHypo0,
+                  hf_charm_cand_reduced::MlScorePromptMassHypo0,
+                  hf_charm_cand_reduced::MlScoreNonpromptMassHypo0,
+                  hf_charm_cand_reduced::MlScoreBkgMassHypo1,
+                  hf_charm_cand_reduced::MlScorePromptMassHypo1,
+                  hf_charm_cand_reduced::MlScoreNonpromptMassHypo1);
+
+// CAREFUL: need to follow convention [Name = Description + 's'] in DECLARE_SOA_TABLE(Name, "AOD", Description)
+// to call DECLARE_SOA_INDEX_COLUMN_FULL later on
 DECLARE_SOA_TABLE(HfRed3Prongs, "AOD", "HFRED3PRONG", //! Table with 3prong candidate information for reduced workflow
                   o2::soa::Index<>,
                   hf_track_index_reduced::Prong0Id, hf_track_index_reduced::Prong1Id, hf_track_index_reduced::Prong2Id,
@@ -711,18 +770,26 @@ using HfRedPidDau2s = HfRedPidDau2s_001;
 using HfRedPidDau0 = HfRedPidDau0s::iterator;
 using HfRedPidDau1 = HfRedPidDau1s::iterator;
 using HfRedPidDau2 = HfRedPidDau2s::iterator;
+
+DECLARE_SOA_TABLE(HfRedB0SoftPi, "AOD", "HFREDB0SOFTPI", //! Table with track information for reduced workflow
+                  o2::soa::Index<>,
+                  hf_track_index::CollisionId,
+                  hf_cand_dstar::PxSoftPi, hf_cand_dstar::PySoftPi, hf_cand_dstar::PzSoftPi,
+                  hf_cand_dstar::DcaYSoftPi, hf_cand_dstar::SigmaYSoftPi);
+
 // Beauty candidates prongs
 namespace hf_cand_b0_reduced
 {
 DECLARE_SOA_INDEX_COLUMN_FULL(Prong0, prong0, int, HfRed3Prongs, "_0");    //! Prong0 index
 DECLARE_SOA_INDEX_COLUMN_FULL(Prong1, prong1, int, HfRedTrackBases, "_1"); //! Prong1 index
+DECLARE_SOA_INDEX_COLUMN_FULL(ProngSoftPi, prongSoftPi, int, HfRedB0SoftPi, ""); //! ProngSoftPi index
 DECLARE_SOA_COLUMN(Prong0MlScoreBkg, prong0MlScoreBkg, float);             //! Bkg ML score of the D daughter
 DECLARE_SOA_COLUMN(Prong0MlScorePrompt, prong0MlScorePrompt, float);       //! Prompt ML score of the D daughter
 DECLARE_SOA_COLUMN(Prong0MlScoreNonprompt, prong0MlScoreNonprompt, float); //! Nonprompt ML score of the D daughter
 } // namespace hf_cand_b0_reduced
 
 DECLARE_SOA_TABLE(HfRedB0Prongs, "AOD", "HFREDB0PRONG", //! Table with B0 daughter indices
-                  hf_cand_b0_reduced::Prong0Id, hf_cand_b0_reduced::Prong1Id);
+                  hf_cand_b0_reduced::Prong0Id, hf_cand_b0_reduced::Prong1Id, hf_cand_b0_reduced::ProngSoftPiId);
 
 DECLARE_SOA_TABLE(HfRedB0DpMls, "AOD", "HFREDB0DPML", //! Table with ML scores for the D+ daughter
                   hf_cand_b0_reduced::Prong0MlScoreBkg,

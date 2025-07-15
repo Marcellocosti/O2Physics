@@ -2678,6 +2678,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(NormalisedImpParamZSoftPi, normalisedImpParamZSoftPi,
 DECLARE_SOA_COLUMN(PxSoftPi, pxSoftPi, float);
 DECLARE_SOA_COLUMN(PySoftPi, pySoftPi, float);
 DECLARE_SOA_COLUMN(PzSoftPi, pzSoftPi, float);
+DECLARE_SOA_COLUMN(DcaYSoftPi, dcaYSoftPi, float);
+DECLARE_SOA_COLUMN(SigmaYSoftPi, sigmaYSoftPi, float);
 DECLARE_SOA_COLUMN(SignSoftPi, signSoftPi, int8_t);
 // Dstar momenta
 DECLARE_SOA_EXPRESSION_COLUMN(PxDstar, pxDstar, float, 1.f * aod::hf_cand::pxProng0 + 1.f * aod::hf_cand::pxProng1 + 1.f * aod::hf_cand_dstar::pxSoftPi);
