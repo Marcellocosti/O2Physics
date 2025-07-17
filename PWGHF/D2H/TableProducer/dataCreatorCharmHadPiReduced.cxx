@@ -267,7 +267,7 @@ struct HfDataCreatorCharmHadPiReduced {
 
   std::array<int, 2> arrPDGResonantDsPhiPi = {kPhi, kPiPlus};      // Ds± → Phi π±
   std::array<int, 2> arrPDGResonantDKstarK = {kK0Star892, kKPlus}; // Ds± → K*(892)0bar K± and D± → K*(892)0bar K±
-  std::array<int, 2> arrPDGResonantDstarD0Pi = {kD0, kPiPlus};      // D*± → D0 π±
+  std::array<int, 2> arrPDGResonantDstarD0Pi = {kD0, kPiPlus};     // D*± → D0 π±
 
   void init(InitContext& initContext)
   {
@@ -388,10 +388,10 @@ struct HfDataCreatorCharmHadPiReduced {
 
     // init HF event selection helper
     hfEvSel.init(registry);
-    if (doprocessDplusPiMc || doprocessDplusPiMcWithMl || 
-        doprocessDsPiMc || doprocessDsPiMcWithMl || 
-        doprocessD0PiMc || doprocessD0PiMcWithMl || 
-        doprocessLcPiMc || doprocessLcPiMcWithMl || 
+    if (doprocessDplusPiMc || doprocessDplusPiMcWithMl ||
+        doprocessDsPiMc || doprocessDsPiMcWithMl ||
+        doprocessD0PiMc || doprocessD0PiMcWithMl ||
+        doprocessLcPiMc || doprocessLcPiMcWithMl ||
         doprocessDstarPiMc || doprocessDstarPiMcWithMl) {
       const auto& workflows = initContext.services().get<RunningWorkflowInfo const>();
       for (const DeviceSpec& device : workflows.devices) {
@@ -1213,8 +1213,8 @@ struct HfDataCreatorCharmHadPiReduced {
         trackParCovCharmHad = df2.createParentTrackParCov();
         trackParCovCharmHad.setAbsCharge(0); // to be sure
       } else if constexpr (decChannel == DecayChannel::B0ToDstarPi) {
-        hCandidatesDstar->Fill(SVFitting::BeforeFit); 
-        
+        hCandidatesDstar->Fill(SVFitting::BeforeFit);
+
         df2.process(trackParCov0, trackParCov1); // D0 vertex
         df2.propagateTracksToVertex();
         std::array<float, 3> pVecPosVtx{}, pVecNegVtx{};
@@ -1241,7 +1241,7 @@ struct HfDataCreatorCharmHadPiReduced {
         df2.getTrack(0).getPxPyPzGlo(pVecD0); // D0
         pVecCharm = RecoDecay::pVec(pVecD0, pVec2);
         trackParCovCharmHad = df2.createParentTrackParCov();
-        trackParCovCharmHad.setAbsCharge(charmHadDauTracks[2].sign());  // sign of soft pion
+        trackParCovCharmHad.setAbsCharge(charmHadDauTracks[2].sign()); // sign of soft pion
       }
 
       float ptDauMin = 1.e6, etaDauMin = 999.f, chi2TpcDauMax = -1.f;
@@ -1390,18 +1390,18 @@ struct HfDataCreatorCharmHadPiReduced {
           }
         } else if constexpr (decChannel == DecayChannel::BplusToD0barPi) { // D0(bar) → K± π∓
           tables.hfCand2Prong(charmHadDauTracks[0].globalIndex(), charmHadDauTracks[1].globalIndex(),
-                       indexHfReducedCollision,
-                       trackParCovCharmHad.getX(), trackParCovCharmHad.getAlpha(),
-                       trackParCovCharmHad.getY(), trackParCovCharmHad.getZ(), trackParCovCharmHad.getSnp(),
-                       trackParCovCharmHad.getTgl(), trackParCovCharmHad.getQ2Pt(),
-                       candC.xSecondaryVertex(), candC.ySecondaryVertex(), candC.zSecondaryVertex(), invMassC0, invMassC1,
-                       ptDauMin, etaDauMin, nItsClsDauMin, nTpcCrossRowsDauMin, chi2TpcDauMax);
+                              indexHfReducedCollision,
+                              trackParCovCharmHad.getX(), trackParCovCharmHad.getAlpha(),
+                              trackParCovCharmHad.getY(), trackParCovCharmHad.getZ(), trackParCovCharmHad.getSnp(),
+                              trackParCovCharmHad.getTgl(), trackParCovCharmHad.getQ2Pt(),
+                              candC.xSecondaryVertex(), candC.ySecondaryVertex(), candC.zSecondaryVertex(), invMassC0, invMassC1,
+                              ptDauMin, etaDauMin, nItsClsDauMin, nTpcCrossRowsDauMin, chi2TpcDauMax);
           tables.hfCand2ProngCov(trackParCovCharmHad.getSigmaY2(), trackParCovCharmHad.getSigmaZY(), trackParCovCharmHad.getSigmaZ2(),
-                          trackParCovCharmHad.getSigmaSnpY(), trackParCovCharmHad.getSigmaSnpZ(),
-                          trackParCovCharmHad.getSigmaSnp2(), trackParCovCharmHad.getSigmaTglY(), trackParCovCharmHad.getSigmaTglZ(),
-                          trackParCovCharmHad.getSigmaTglSnp(), trackParCovCharmHad.getSigmaTgl2(),
-                          trackParCovCharmHad.getSigma1PtY(), trackParCovCharmHad.getSigma1PtZ(), trackParCovCharmHad.getSigma1PtSnp(),
-                          trackParCovCharmHad.getSigma1PtTgl(), trackParCovCharmHad.getSigma1Pt2());
+                                 trackParCovCharmHad.getSigmaSnpY(), trackParCovCharmHad.getSigmaSnpZ(),
+                                 trackParCovCharmHad.getSigmaSnp2(), trackParCovCharmHad.getSigmaTglY(), trackParCovCharmHad.getSigmaTglZ(),
+                                 trackParCovCharmHad.getSigmaTglSnp(), trackParCovCharmHad.getSigmaTgl2(),
+                                 trackParCovCharmHad.getSigma1PtY(), trackParCovCharmHad.getSigma1PtZ(), trackParCovCharmHad.getSigma1PtSnp(),
+                                 trackParCovCharmHad.getSigma1PtTgl(), trackParCovCharmHad.getSigma1Pt2());
           tables.hfCandPidProng0(candC.nSigTpcPi0(), candC.nSigTofPi0(), candC.nSigTpcKa0(), candC.nSigTofKa0(), 0., 0., charmHadDauTracks[0].hasTOF(), charmHadDauTracks[0].hasTPC());
           tables.hfCandPidProng1(candC.nSigTpcPi1(), candC.nSigTofPi1(), candC.nSigTpcKa1(), candC.nSigTofKa1(), 0., 0., charmHadDauTracks[1].hasTOF(), charmHadDauTracks[1].hasTPC());
           if constexpr (withMl) {
@@ -1597,8 +1597,8 @@ struct HfDataCreatorCharmHadPiReduced {
           counter++;
         }
         tables.rowHfBsMcGenReduced(flag, -1 /*channel*/, ptParticle, yParticle, etaParticle,
-                            ptProngs[0], yProngs[0], etaProngs[0],
-                            ptProngs[1], yProngs[1], etaProngs[1], hfRejMap, centFT0C, centFT0M);
+                                   ptProngs[0], yProngs[0], etaProngs[0],
+                                   ptProngs[1], yProngs[1], etaProngs[1], hfRejMap, centFT0C, centFT0M);
       } else if constexpr (decayChannel == DecayChannel::BplusToD0barPi) {
         // B+ → D0bar π+
         if (RecoDecay::isMatchedMCGen(particlesMc, particle, Pdg::kBPlus, std::array{-static_cast<int>(Pdg::kD0), +kPiPlus}, true)) {
@@ -1630,8 +1630,8 @@ struct HfDataCreatorCharmHadPiReduced {
           counter++;
         }
         tables.rowHfBpMcGenReduced(flag, -1 /*channel*/, ptParticle, yParticle, etaParticle,
-                            ptProngs[0], yProngs[0], etaProngs[0],
-                            ptProngs[1], yProngs[1], etaProngs[1], hfRejMap, centFT0C, centFT0M);
+                                   ptProngs[0], yProngs[0], etaProngs[0],
+                                   ptProngs[1], yProngs[1], etaProngs[1], hfRejMap, centFT0C, centFT0M);
       } else if constexpr (decayChannel == DecayChannel::LbToLcplusPi) {
         // Lb → Lc+ π-
         if (RecoDecay::isMatchedMCGen<true>(particlesMc, particle, Pdg::kLambdaB0, std::array{static_cast<int>(Pdg::kLambdaCPlus), -kPiPlus}, true)) {
