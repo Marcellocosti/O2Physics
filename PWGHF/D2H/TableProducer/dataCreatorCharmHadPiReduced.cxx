@@ -145,6 +145,7 @@ struct HfDataCreatorCharmHadPiReduced {
     Produces<aod::HfCandB0Configs> rowCandidateConfigB0;
     Produces<aod::HfMcRecRedDpPis> rowHfDPiMcRecReduced;
     Produces<aod::HfMcCheckDpPis> rowHfDPiMcCheckReduced;
+    Produces<aod::HfMcRecRedDStarPis> rowHfDStarPiMcRecReduced;
     Produces<aod::HfMcGenRedB0s> rowHfB0McGenReduced;
 
     Produces<aod::HfCandBpConfigs> rowCandidateConfigBplus;
@@ -1010,7 +1011,7 @@ struct HfDataCreatorCharmHadPiReduced {
           checkWrongCollision(particleMother, collision, indexCollisionMaxNumContrib, flagWrongCollision);
         }
       }
-      tables.rowHfDPiMcRecReduced(indexHfCandCharm, selectedTracksPion[vecDaughtersB.back().globalIndex()], flag, flagWrongCollision, debug, motherPt);
+      tables.rowHfDStarPiMcRecReduced(indexHfCandCharm, selectedTracksPion[vecDaughtersB.back().globalIndex()], selectedTracksPion[vecDaughtersB[2].globalIndex()], flag, flagWrongCollision, debug, motherPt);
     }
   }
 
@@ -1451,11 +1452,11 @@ struct HfDataCreatorCharmHadPiReduced {
                                     trackParCovSoftPion.getSigma1PtTgl(), trackParCovSoftPion.getSigma1Pt2());
           tables.hfTrackPidSoftPion(candC.nSigTpcPi2(), candC.nSigTofPi2(), candC.nSigTpcKa2(), candC.nSigTofKa2(), charmHadDauTracks[2].hasTOF(), charmHadDauTracks[2].hasTPC());
           if constexpr (withMl) {
-            std::array<float, 6> mlScores = {-1.f, -1.f, -1.f, -1.f, -1.f, -1.f};
+            std::array<float, 3> mlScores = {-1.f, -1.f, -1.f};
             if (candC.mlProbDstarToD0Pi().size() == NSizeMLScore) {
               std::copy(candC.mlProbDstarToD0Pi().begin(), candC.mlProbDstarToD0Pi().end(), mlScores.begin());
             }
-            tables.hfCandDStarMl(mlScores[0], mlScores[1], mlScores[2], -1.f, -1.f, -1.f);
+            tables.hfCandDStarMl(mlScores[0], mlScores[1], mlScores[2]);
           }
         }
         fillHfReducedCollision = true;

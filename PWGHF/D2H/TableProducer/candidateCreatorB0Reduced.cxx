@@ -56,10 +56,11 @@ concept HasSoftPi = requires(T candidate) {
 
 /// Reconstruction of B0 candidates
 struct HfCandidateCreatorB0Reduced {
-  Produces<aod::HfCandB0Base> rowCandidateBase;         // table defined in CandidateReconstructionTables.h
-  Produces<aod::HfRedB0Prongs> rowCandidateProngs;      // table defined in ReducedDataModel.h
-  Produces<aod::HfRedB0SoftPi> rowCandidateSoftPi;      // table defined in ReducedDataModel.h
-  Produces<aod::HfRedB0DpMls> rowCandidateDmesMlScores; // table defined in ReducedDataModel.h
+  Produces<aod::HfCandB0Base> rowCandidateBase;              // table defined in CandidateReconstructionTables.h
+  Produces<aod::HfRedB0Prongs> rowCandidateProngs;           // table defined in ReducedDataModel.h
+  Produces<aod::HfRedB0ProngDStars> rowCandidateProngsDStar; // table defined in ReducedDataModel.h
+  Produces<aod::HfRedB0SoftPi> rowCandidateSoftPi;           // table defined in ReducedDataModel.h
+  Produces<aod::HfRedB0DpMls> rowCandidateDmesMlScores;      // table defined in ReducedDataModel.h
 
   // vertexing
   Configurable<bool> propagateToPCA{"propagateToPCA", true, "create tracks version propagated to PCA"};
@@ -234,7 +235,7 @@ struct HfCandidateCreatorB0Reduced {
                          dcaD.getY(), dcaPion.getY(),
                          std::sqrt(dcaD.getSigmaY2()), std::sqrt(dcaPion.getSigmaY2()));
 
-        rowCandidateProngs(candD.globalIndex(), trackPion.globalIndex(), -1); // -1 for soft pion, not used in this case
+        rowCandidateProngs(candD.globalIndex(), trackPion.globalIndex());
 
         if constexpr (withDmesMl) {
           rowCandidateDmesMlScores(candD.mlScoreBkgMassHypo0(), candD.mlScorePromptMassHypo0(), candD.mlScoreNonpromptMassHypo0());
@@ -265,6 +266,7 @@ struct HfCandidateCreatorB0Reduced {
     df3.setBz(bz);
 
     for (const auto& candD : candsDThisColl) {
+      LOG(debug) << "Processing candidate with ID: " << candD.globalIndex();
       auto trackParCovD = getTrackParCov(candD);
       std::array<float, 3> pVecD = candD.pVector();
       auto softPi = candD.template softPi_as<HfSoftPiWCovAndPid>();
@@ -276,6 +278,7 @@ struct HfCandidateCreatorB0Reduced {
         if (trackPion.trackId() == candD.prong0Id() || trackPion.trackId() == candD.prong1Id() || trackPion.trackId() == candD.prong2Id()) {
           continue;
         }
+        LOG(debug) << "Picked soft pi!";
         
         auto trackParCovPi = getTrackParCov(trackPion);
         std::array<float, 3> pVecPion = trackPion.pVector();
@@ -285,7 +288,8 @@ struct HfCandidateCreatorB0Reduced {
         if ((invMass2DPi < invMass2DPiMin) || (invMass2DPi > invMass2DPiMax)) {
           continue;
         }
-
+        
+        LOG(debug) << "Invariant mass square: " << invMass2DPi;
         // ---------------------------------
         // reconstruct the 2-prong B0 vertex
         hCandidates->Fill(SVFitting::BeforeFit);
@@ -333,6 +337,7 @@ struct HfCandidateCreatorB0Reduced {
         auto errorDecayLength = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, theta) + getRotatedCovMatrixXX(covMatrixPCA, phi, theta));
         auto errorDecayLengthXY = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, 0.) + getRotatedCovMatrixXX(covMatrixPCA, phi, 0.));
 
+        LOG(info) << "Filling ... ";
         // fill the candidate table for the B0 here:
         rowCandidateBase(collision.globalIndex(),
                          collision.posX(), collision.posY(), collision.posZ(),
@@ -344,7 +349,7 @@ struct HfCandidateCreatorB0Reduced {
                          dcaD.getY(), dcaPion.getY(),
                          std::sqrt(dcaD.getSigmaY2()), std::sqrt(dcaPion.getSigmaY2()));
 
-        rowCandidateProngs(candD.globalIndex(), trackPion.globalIndex(), softPi.globalIndex());
+        rowCandidateProngsDStar(candD.globalIndex(), trackPion.globalIndex(), softPi.globalIndex());
 
         rowCandidateSoftPi(collision.globalIndex(),
                            pVecSoftPi[0], pVecSoftPi[1], pVecSoftPi[2],
@@ -509,14 +514,21 @@ struct HfCandidateCreatorB0ReducedExpressions {
   /// \param checkDecayTypeMc
   /// \param rowsDPiMcRec MC reco information on DPi pairs
   /// \param candsB0 prong global indices of B0 candidates
-  template <bool checkDecayTypeMc, typename McRec>
-  void fillB0McRec(McRec const& rowsDPiMcRec, HfRedB0Prongs const& candsB0)
+  template <bool checkDecayTypeMc, typename McRec, typename B0Prongs>
+  void fillB0McRec(McRec const& rowsDPiMcRec, B0Prongs const& candsB0)
   {
+    LOG(info) << "Filling B0 MC rec table with " << candsB0.size() << " candidates";
     for (const auto& candB0 : candsB0) {
       bool filledMcInfo{false};
       for (const auto& rowDPiMcRec : rowsDPiMcRec) {
-        if ((rowDPiMcRec.prong0Id() != candB0.prong0Id()) || (rowDPiMcRec.prong1Id() != candB0.prong1Id())) {
-          continue;
+        if constexpr (std::is_same_v<B0Prongs, aod::HfRedB0Prongs>) {
+          if ((rowDPiMcRec.prong0Id() != candB0.prong0Id()) || (rowDPiMcRec.prong1Id() != candB0.prong1Id())) {
+            continue;
+          }
+        } else if constexpr (std::is_same_v<B0Prongs, aod::HfRedB0ProngDStars>) {
+          if ((rowDPiMcRec.prongDStarId() != candB0.prongDStarId()) || (rowDPiMcRec.prong1Id() != candB0.prong1Id()) || (rowDPiMcRec.prongSoftPiId() != candB0.prongSoftPiId())) {
+            continue;
+          }
         }
         rowB0McRec(rowDPiMcRec.flagMcMatchRec(), -1 /*channel*/, rowDPiMcRec.flagWrongCollision(), rowDPiMcRec.debugMcRec(), rowDPiMcRec.ptMother());
         filledMcInfo = true;
@@ -539,17 +551,29 @@ struct HfCandidateCreatorB0ReducedExpressions {
     }
   }
 
-  void processMc(HfMcRecRedDpPis const& rowsDPiMcRec, HfRedB0Prongs const& candsB0)
+  void processMcDplusPi(HfMcRecRedDpPis const& rowsDPiMcRec, HfRedB0Prongs const& candsB0)
   {
     fillB0McRec<false>(rowsDPiMcRec, candsB0);
   }
-  PROCESS_SWITCH(HfCandidateCreatorB0ReducedExpressions, processMc, "Process MC", false);
+  PROCESS_SWITCH(HfCandidateCreatorB0ReducedExpressions, processMcDplusPi, "Process MC for DplusPi", false);
 
-  void processMcWithDecayTypeCheck(soa::Join<HfMcRecRedDpPis, HfMcCheckDpPis> const& rowsDPiMcRec, HfRedB0Prongs const& candsB0)
+  void processMcDplusPiWithDecayTypeCheck(soa::Join<HfMcRecRedDpPis, HfMcCheckDpPis> const& rowsDPiMcRec, HfRedB0Prongs const& candsB0)
   {
     fillB0McRec<true>(rowsDPiMcRec, candsB0);
   }
-  PROCESS_SWITCH(HfCandidateCreatorB0ReducedExpressions, processMcWithDecayTypeCheck, "Process MC with decay type checks", false);
+  PROCESS_SWITCH(HfCandidateCreatorB0ReducedExpressions, processMcDplusPiWithDecayTypeCheck, "Process MC with decay type checks for DplusPi", false);
+
+  void processMcDstarPi(HfMcRecRedDStarPis const& rowsDPiMcRec, HfRedB0ProngDStars const& candsB0)
+  {
+    fillB0McRec<false>(rowsDPiMcRec, candsB0);
+  }
+  PROCESS_SWITCH(HfCandidateCreatorB0ReducedExpressions, processMcDstarPi, "Process MC for DstarPi", false);
+
+  void processMcDstarPiWithDecayTypeCheck(soa::Join<HfMcRecRedDStarPis, HfMcCheckDpPis> const& rowsDPiMcRec, HfRedB0ProngDStars const& candsB0)
+  {
+    fillB0McRec<true>(rowsDPiMcRec, candsB0);
+  }
+  PROCESS_SWITCH(HfCandidateCreatorB0ReducedExpressions, processMcDstarPiWithDecayTypeCheck, "Process MC with decay type checks for DstarPi", false);
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)

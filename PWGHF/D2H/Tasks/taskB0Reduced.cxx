@@ -193,6 +193,8 @@ struct HfTaskB0Reduced {
 
   using TracksPion = soa::Join<HfRedTracks, HfRedTracksPid>;
   using CandsDplus = soa::Join<HfRed3Prongs, HfRedPidDau0s, HfRedPidDau1s, HfRedPidDau2s>;
+  using CandsDstar = soa::Join<HfRedDStars, HfRedPidDau0s, HfRedPidDau1s, HfRedSoftPiPid>;
+  using TracksSoftPions = soa::Join<aod::HfRedSoftPiBases, aod::HfRedSoftPiCov, aod::HfRedSoftPiPid>;
 
   Filter filterSelectCandidates = (aod::hf_sel_candidate_b0::isSelB0ToDPi >= selectionFlagB0);
 
@@ -200,11 +202,13 @@ struct HfTaskB0Reduced {
 
   void init(InitContext&)
   {
-    std::array<bool, 3> processFuncData{doprocessData, doprocessDataWithDmesMl, doprocessDataWithB0Ml};
+    std::array<bool, 6> processFuncData{doprocessDataDplusPi, doprocessDataDplusPiWithDmesMl, doprocessDataDplusPiWithB0Ml, 
+                                        doprocessDataDstarPi, doprocessDataDstarPiWithDmesMl, doprocessDataDstarPiWithB0Ml};
     if ((std::accumulate(processFuncData.begin(), processFuncData.end(), 0)) > 1) {
       LOGP(fatal, "Only one process function for data can be enabled at a time.");
     }
-    std::array<bool, 6> processFuncMc{doprocessMc, doprocessMcWithDecayTypeCheck, doprocessMcWithDmesMl, doprocessMcWithDmesMlAndDecayTypeCheck, doprocessMcWithB0Ml, doprocessMcWithB0MlAndDecayTypeCheck};
+    std::array<bool, 12> processFuncMc{doprocessMcDplusPi, doprocessMcDplusPiWithDecayTypeCheck, doprocessMcDplusPiWithDmesMl, doprocessMcDplusPiWithDmesMlAndDecayTypeCheck, doprocessMcDplusPiWithB0Ml, doprocessMcDplusPiWithB0MlAndDecayTypeCheck,
+                                       doprocessMcDstarPi, doprocessMcDstarPiWithDmesMl, doprocessMcDstarPiWithB0Ml};
     if ((std::accumulate(processFuncMc.begin(), processFuncMc.end(), 0)) > 1) {
       LOGP(fatal, "Only one process function for MC can be enabled at a time.");
     }
@@ -223,59 +227,71 @@ struct HfTaskB0Reduced {
     const AxisSpec axisPtDminus{100, 0.f, 50.f};
     const AxisSpec axisPtPi{100, 0.f, 10.f};
 
-    if (doprocessData || doprocessDataWithDmesMl || doprocessDataWithB0Ml) {
+    std::string dMesSpecie{""};
+    std::array<bool, 9> processFuncDplusPi = {doprocessDataDplusPi, doprocessDataDplusPiWithDmesMl, doprocessDataDplusPiWithB0Ml, 
+                                              doprocessMcDplusPi, doprocessMcDplusPiWithDecayTypeCheck, doprocessMcDplusPiWithDmesMl, 
+                                              doprocessMcDplusPiWithDmesMlAndDecayTypeCheck, doprocessMcDplusPiWithB0Ml, 
+                                              doprocessMcDplusPiWithB0MlAndDecayTypeCheck};
+    if ((std::accumulate(processFuncDplusPi.begin(), processFuncDplusPi.end(), 0)) > 1) {
+      dMesSpecie += "D^{#minus}";
+    } else {
+      dMesSpecie += "D*";
+    }
+
+    if (doprocessDataDplusPi || doprocessDataDplusPiWithDmesMl || doprocessDataDplusPiWithB0Ml || doprocessDataDstarPi || doprocessDataDstarPiWithDmesMl || doprocessDataDstarPiWithB0Ml) {
       if (fillHistograms) {
         registry.add("hMass", "B^{0} candidates;#it{p}_{T}(B^{0}) (GeV/#it{c});#it{M} (D#pi) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {axisPtB0, axisMassB0}});
         registry.add("hDecLength", "B^{0} candidates;#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate decay length (cm);entries", {HistType::kTH2F, {axisPtB0, axisDecayLength}});
         registry.add("hDecLengthXy", "B^{0} candidates;#it{p}_{T}(B^{0}) (GeV/#it{c});decay length XY (cm);entries", {HistType::kTH2F, {axisPtB0, axisDecayLength}});
         registry.add("hNormDecLengthXy", "B^{0} candidates;#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate norm. decay length XY (cm);entries", {HistType::kTH2F, {axisPtB0, axisNormDecayLength}});
-        registry.add("hDcaProng0", "B^{0} candidates;#it{p}_{T}(B^{0}) (GeV/#it{c});prong 0 (D^{#minus}) DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {axisPtB0, axisDca}});
+        registry.add("hDcaProng0", Form("B^{0} candidates;#it{p}_{T}(B^{0}) (GeV/#it{c});prong 0 (%s) DCAxy to prim. vertex (cm);entries", dMesSpecie.c_str()), {HistType::kTH2F, {axisPtB0, axisDca}});
         registry.add("hDcaProng1", "B^{0} candidates;#it{p}_{T}(B^{0}) (GeV/#it{c});prong 1 (#pi^{#plus}) DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {axisPtB0, axisDca}});
-        registry.add("hPtProng0", "B^{0} candidates;#it{p}_{T}(B^{0}) (GeV/#it{c});#it{p}_{T}(D^{#minus}) (GeV/#it{c});entries", {HistType::kTH2F, {axisPtB0, axisPtDminus}});
+        registry.add("hPtProng0", Form("B^{0} candidates;#it{p}_{T}(B^{0}) (GeV/#it{c});#it{p}_{T}(%s) (GeV/#it{c});entries", dMesSpecie.c_str()), {HistType::kTH2F, {axisPtB0, axisPtDminus}});
         registry.add("hPtProng1", "B^{0} candidates;#it{p}_{T}(B^{0}) (GeV/#it{c});#it{p}_{T}(#pi^{#plus}) (GeV/#it{c});entries", {HistType::kTH2F, {axisPtB0, axisPtPi}});
         registry.add("hCosp", "B^{0} candidates;#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate cos(#vartheta_{P});entries", {HistType::kTH2F, {axisPtB0, axisCosp}});
         registry.add("hCospXy", "B^{0} candidates;#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate cos(#vartheta_{P}^{XY});entries", {HistType::kTH2F, {axisPtB0, axisCosp}});
         registry.add("hEta", "B^{0} candidates;#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate #it{#eta};entries", {HistType::kTH2F, {axisPtB0, axisEta}});
         registry.add("hRapidity", "B^{0} candidates;#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate #it{y};entries", {HistType::kTH2F, {axisPtB0, axisEta}});
         registry.add("hImpParProd", "B^{0} candidates;#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate impact parameter product;entries", {HistType::kTH2F, {axisPtB0, axisImpParProd}});
-        registry.add("hInvMassD", "B^{0} candidates;#it{p}_{T}(D^{#minus}) (GeV/#it{c});prong0, #it{M}(K#pi) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {axisPtDminus, axisMassDminus}});
-        registry.add("hDecLengthD", "B^{0} candidates;#it{p}_{T}(D^{#minus}) (GeV/#it{c});D^{#minus} candidate decay length (cm);entries", {HistType::kTH2F, {axisPtDminus, axisDecayLength}});
-        registry.add("hDecLengthXyD", "B^{0} candidates;#it{p}_{T}(D^{#minus}) (GeV/#it{c});decay length XY (cm);entries", {HistType::kTH2F, {axisPtDminus, axisDecayLength}});
-        registry.add("hCospD", "B^{0} candidates;#it{p}_{T}(D^{#minus}) (GeV/#it{c});D^{#minus} candidate cos(#vartheta_{P});entries", {HistType::kTH2F, {axisPtDminus, axisCosp}});
-        registry.add("hCospXyD", "B^{0} candidates;#it{p}_{T}(D^{#minus}) (GeV/#it{c});D^{#minus} candidate cos(#vartheta_{P}^{XY});entries", {HistType::kTH2F, {axisPtDminus, axisCosp}});
+        registry.add("hInvMassD", Form("B^{0} candidates;#it{p}_{T}(%s) (GeV/#it{c});prong0, #it{M}(K#pi) (GeV/#it{c}^{2});entries", dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisMassDminus}});
+        registry.add("hDecLengthD", Form("B^{0} candidates;#it{p}_{T}(%s) (GeV/#it{c});%s candidate decay length (cm);entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisDecayLength}});
+        registry.add("hDecLengthXyD", Form("B^{0} candidates;#it{p}_{T}(%s) (GeV/#it{c});decay length XY (cm);entries", dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisDecayLength}});
+        registry.add("hCospD", Form("B^{0} candidates;#it{p}_{T}(%s) (GeV/#it{c});%s candidate cos(#vartheta_{P});entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisCosp}});
+        registry.add("hCospXyD", Form("B^{0} candidates;#it{p}_{T}(%s) (GeV/#it{c});%s candidate cos(#vartheta_{P}^{XY});entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisCosp}});
 
         // ML scores of D- daughter
-        if (doprocessDataWithDmesMl) {
-          registry.add("hMlScoreBkgD", "B^{0} candidates;#it{p}_{T}(D^{#minus}) (GeV/#it{c});prong0, D^{#minus} ML background score;entries", {HistType::kTH2F, {axisPtDminus, axisMlScore}});
-          registry.add("hMlScorePromptD", "B^{0} candidates;#it{p}_{T}(D^{#minus}) (GeV/#it{c});prong0, D^{#minus} ML prompt score;entries", {HistType::kTH2F, {axisPtDminus, axisMlScore}});
-          registry.add("hMlScoreNonPromptD", "B^{0} candidates;#it{p}_{T}(D^{#minus}) (GeV/#it{c});prong0, D^{#minus} ML nonprompt score;entries", {HistType::kTH2F, {axisPtDminus, axisMlScore}});
+        if (doprocessDataDplusPiWithDmesMl || doprocessDataDstarPiWithDmesMl) {
+          registry.add("hMlScoreBkgD", Form("B^{0} candidates;#it{p}_{T}(%s) (GeV/#it{c});prong0, %s ML background score;entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisMlScore}});
+          registry.add("hMlScorePromptD", Form("B^{0} candidates;#it{p}_{T}(%s) (GeV/#it{c});prong0, %s ML prompt score;entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisMlScore}});
+          registry.add("hMlScoreNonPromptD", Form("B^{0} candidates;#it{p}_{T}(%s) (GeV/#it{c});prong0, %s ML nonprompt score;entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisMlScore}});
         }
 
         // ML scores of B0 candidate
-        if (doprocessDataWithB0Ml) {
+        if (doprocessDataDplusPiWithB0Ml || doprocessDataDstarPiWithB0Ml) {
           registry.add("hMlScoreSigB0", "B^{0} candidates;#it{p}_{T}(B^{0}) (GeV/#it{c});prong0, B^{0} ML signal score;entries", {HistType::kTH2F, {axisPtB0, axisMlScore}});
         }
       }
       if (fillSparses) {
-        if (!(doprocessDataWithDmesMl || doprocessDataWithB0Ml)) {
-          registry.add("hMassPtCutVars", "B^{0} candidates;#it{M} (D#pi) (GeV/#it{c}^{2});#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate decay length (cm);B^{0} candidate norm. decay length XY (cm);B^{0} candidate impact parameter product (cm);B^{0} candidate cos(#vartheta_{P});#it{M} (K#pi) (GeV/#it{c}^{2});#it{p}_{T}(D^{#minus}) (GeV/#it{c});D^{#minus} candidate decay length (cm);D^{#minus} candidate cos(#vartheta_{P})", {HistType::kTHnSparseF, {axisMassB0, axisPtB0, axisDecayLength, axisNormDecayLength, axisImpParProd, axisCosp, axisMassDminus, axisPtDminus, axisDecayLength, axisCosp}});
+        if (!(doprocessDataDplusPiWithDmesMl || doprocessDataDplusPiWithB0Ml || doprocessDataDstarPiWithDmesMl || doprocessDataDstarPiWithB0Ml)) {
+          registry.add("hMassPtCutVars", "B^{0} candidates;#it{M} (D#pi) (GeV/#it{c}^{2});#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate decay length (cm);B^{0} candidate norm. decay length XY (cm);B^{0} candidate impact parameter product (cm);B^{0} candidate cos(#vartheta_{P});#it{M} (K#pi) (GeV/#it{c}^{2});#it{p}_{T}(%s) (GeV/#it{c});%s candidate decay length (cm);%s candidate cos(#vartheta_{P})", {HistType::kTHnSparseF, {axisMassB0, axisPtB0, axisDecayLength, axisNormDecayLength, axisImpParProd, axisCosp, axisMassDminus, axisPtDminus, axisDecayLength, axisCosp}});
         } else {
-          registry.add("hMassPtCutVars", "B^{0} candidates;#it{M} (D#pi) (GeV/#it{c}^{2});#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate decay length (cm);B^{0} candidate norm. decay length XY (cm);B^{0} candidate impact parameter product (cm);B^{0} candidate cos(#vartheta_{P});#it{M} (K#pi) (GeV/#it{c}^{2});#it{p}_{T}(D^{#minus}) (GeV/#it{c});D^{#minus} candidate ML score bkg;D^{#minus} candidate ML score nonprompt", {HistType::kTHnSparseF, {axisMassB0, axisPtB0, axisDecayLength, axisNormDecayLength, axisImpParProd, axisCosp, axisMassDminus, axisPtDminus, axisMlScore, axisMlScore}});
+          registry.add("hMassPtCutVars", "B^{0} candidates;#it{M} (D#pi) (GeV/#it{c}^{2});#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate decay length (cm);B^{0} candidate norm. decay length XY (cm);B^{0} candidate impact parameter product (cm);B^{0} candidate cos(#vartheta_{P});#it{M} (K#pi) (GeV/#it{c}^{2});#it{p}_{T}(%s) (GeV/#it{c});%s candidate ML score bkg;%s candidate ML score nonprompt", {HistType::kTHnSparseF, {axisMassB0, axisPtB0, axisDecayLength, axisNormDecayLength, axisImpParProd, axisCosp, axisMassDminus, axisPtDminus, axisMlScore, axisMlScore}});
         }
       }
     }
 
-    if (doprocessMc || doprocessMcWithDecayTypeCheck || doprocessMcWithDmesMl || doprocessMcWithDmesMlAndDecayTypeCheck || doprocessMcWithB0Ml || doprocessMcWithB0MlAndDecayTypeCheck) {
+    if (doprocessMcDplusPi || doprocessMcDplusPiWithDecayTypeCheck || doprocessMcDplusPiWithDmesMl || doprocessMcDplusPiWithDmesMlAndDecayTypeCheck || doprocessMcDplusPiWithB0Ml || doprocessMcDplusPiWithB0MlAndDecayTypeCheck ||
+        doprocessMcDstarPi || doprocessMcDstarPiWithDmesMl || doprocessMcDstarPiWithB0Ml) {
       if (fillHistograms) {
         // gen histos
         registry.add("hEtaGen", "B^{0} particles (generated);#it{p}_{T}^{gen}(B^{0}) (GeV/#it{c});#it{#eta}^{gen}(B^{0});entries", {HistType::kTH2F, {axisPtB0, axisEta}});
         registry.add("hYGen", "B^{0} particles (generated);#it{p}_{T}^{gen}(B^{0}) (GeV/#it{c});#it{y}^{gen}(B^{0});entries", {HistType::kTH2F, {axisPtB0, axisEta}});
         registry.add("hYGenWithProngsInAcceptance", "MC particles (generated-daughters in acceptance);#it{p}_{T}^{gen}(B^{0}) (GeV/#it{c});#it{y}^{gen}(B^{0});entries", {HistType::kTH2F, {axisPtB0, axisEta}});
-        registry.add("hPtProng0Gen", "B^{0} particles (generated);#it{p}_{T}^{gen}(B^{0}) (GeV/#it{c});#it{p}_{T}^{gen}(D^{#minus}) (GeV/#it{c});entries", {HistType::kTH2F, {axisPtB0, axisPtDminus}});
+        registry.add("hPtProng0Gen", Form("B^{0} particles (generated);#it{p}_{T}^{gen}(B^{0}) (GeV/#it{c});#it{p}_{T}^{gen}(%s) (GeV/#it{c});entries", dMesSpecie.c_str()), {HistType::kTH2F, {axisPtB0, axisPtDminus}});
         registry.add("hPtProng1Gen", "B^{0} particles (generated);#it{p}_{T}^{gen}(B^{0}) (GeV/#it{c});#it{p}_{T}^{gen}(#pi^{#plus}) (GeV/#it{c});entries", {HistType::kTH2F, {axisPtB0, axisPtPi}});
-        registry.add("hYProng0Gen", "B^{0} particles (generated);#it{p}_{T}^{gen}(B^{0}) (GeV/#it{c});#it{y}^{gen}(D^{#minus});entries", {HistType::kTH2F, {axisPtB0, axisEta}});
+        registry.add("hYProng0Gen", Form("B^{0} particles (generated);#it{p}_{T}^{gen}(B^{0}) (GeV/#it{c});#it{y}^{gen}(%s);entries", dMesSpecie.c_str()), {HistType::kTH2F, {axisPtB0, axisEta}});
         registry.add("hYProng1Gen", "B^{0} particles (generated);#it{p}_{T}^{gen}(B^{0}) (GeV/#it{c});#it{y}^{gen}(#pi^{#plus});entries", {HistType::kTH2F, {axisPtB0, axisEta}});
-        registry.add("hEtaProng0Gen", "B^{0} particles (generated);#it{p}_{T}^{gen}(B^{0}) (GeV/#it{c});#it{#eta}^{gen}(D^{#minus});entries", {HistType::kTH2F, {axisPtB0, axisEta}});
+        registry.add("hEtaProng0Gen", Form("B^{0} particles (generated);#it{p}_{T}^{gen}(B^{0}) (GeV/#it{c});#it{#eta}^{gen}(%s);entries", dMesSpecie.c_str()), {HistType::kTH2F, {axisPtB0, axisEta}});
         registry.add("hEtaProng1Gen", "B^{0} particles (generated);#it{p}_{T}^{gen}(B^{0}) (GeV/#it{c});#it{#eta}^{gen}(#pi^{#plus});entries", {HistType::kTH2F, {axisPtB0, axisEta}});
 
         // reco histos
@@ -284,49 +300,49 @@ struct HfTaskB0Reduced {
         registry.add("hDecLengthRecSig", "B^{0} candidates (matched);#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate decay length (cm);entries", {HistType::kTH2F, {axisPtB0, axisDecayLength}});
         registry.add("hDecLengthXyRecSig", "B^{0} candidates (matched);#it{p}_{T}(B^{0}) (GeV/#it{c});decay length XY (cm);entries", {HistType::kTH2F, {axisPtB0, axisDecayLength}});
         registry.add("hNormDecLengthXyRecSig", "B^{0} candidates (matched);#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate norm. decay length XY (cm);entries", {HistType::kTH2F, {axisPtB0, axisNormDecayLength}});
-        registry.add("hDcaProng0RecSig", "B^{0} candidates (matched);#it{p}_{T}(B^{0}) (GeV/#it{c});prong 0 (D^{#minus}) DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {axisPtB0, axisDca}});
+        registry.add("hDcaProng0RecSig", Form("B^{0} candidates (matched);#it{p}_{T}(B^{0}) (GeV/#it{c});prong 0 (%s) DCAxy to prim. vertex (cm);entries", dMesSpecie.c_str()), {HistType::kTH2F, {axisPtB0, axisDca}});
         registry.add("hDcaProng1RecSig", "B^{0} candidates (matched);#it{p}_{T}(B^{0}) (GeV/#it{c});prong 1 (#pi^{#plus}) DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {axisPtB0, axisDca}});
-        registry.add("hPtProng0RecSig", "B^{0} candidates (matched);#it{p}_{T}(B^{0}) (GeV/#it{c});#it{p}_{T}(D^{#minus}) (GeV/#it{c});entries", {HistType::kTH2F, {axisPtB0, axisPtDminus}});
+        registry.add("hPtProng0RecSig", Form("B^{0} candidates (matched);#it{p}_{T}(B^{0}) (GeV/#it{c});#it{p}_{T}(%s) (GeV/#it{c});entries", dMesSpecie.c_str()), {HistType::kTH2F, {axisPtB0, axisPtDminus}});
         registry.add("hPtProng1RecSig", "B^{0} candidates (matched);#it{p}_{T}(B^{0}) (GeV/#it{c});#it{p}_{T}(#pi^{#plus}) (GeV/#it{c});entries", {HistType::kTH2F, {axisPtB0, axisPtPi}});
         registry.add("hCospRecSig", "B^{0} candidates (matched);#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate cos(#vartheta_{P});entries", {HistType::kTH2F, {axisPtB0, axisCosp}});
         registry.add("hCospXyRecSig", "B^{0} candidates (matched);#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate cos(#vartheta_{P}^{XY});entries", {HistType::kTH2F, {axisPtB0, axisCosp}});
         registry.add("hEtaRecSig", "B^{0} candidates (matched);#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate #it{#eta};entries", {HistType::kTH2F, {axisPtB0, axisEta}});
         registry.add("hRapidityRecSig", "B^{0} candidates (matched);#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate #it{y};entries", {HistType::kTH2F, {axisPtB0, axisEta}});
         registry.add("hImpParProdRecSig", "B^{0} candidates (matched);#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate impact parameter product;entries", {HistType::kTH2F, {axisPtB0, axisImpParProd}});
-        registry.add("hInvMassDRecSig", "B^{0} candidates (matched);#it{p}_{T}(D^{#minus}) (GeV/#it{c});prong0, #it{M}(K#pi) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {axisPtDminus, axisMassDminus}});
-        registry.add("hDecLengthDRecSig", "B^{0} candidates (matched);#it{p}_{T}(D^{#minus}) (GeV/#it{c});D^{#minus} candidate decay length (cm);entries", {HistType::kTH2F, {axisPtDminus, axisDecayLength}});
-        registry.add("hDecLengthXyDRecSig", "B^{0} candidates (matched);#it{p}_{T}(D^{#minus}) (GeV/#it{c});decay length XY (cm);entries", {HistType::kTH2F, {axisPtDminus, axisDecayLength}});
-        registry.add("hCospDRecSig", "B^{0} candidates (matched);#it{p}_{T}(D^{#minus}) (GeV/#it{c});D^{#minus} candidate cos(#vartheta_{P});entries", {HistType::kTH2F, {axisPtDminus, axisCosp}});
-        registry.add("hCospXyDRecSig", "B^{0} candidates (matched);#it{p}_{T}(D^{#minus}) (GeV/#it{c});D^{#minus} candidate cos(#vartheta_{P}^{XY});entries", {HistType::kTH2F, {axisPtDminus, axisCosp}});
+        registry.add("hInvMassDRecSig", Form("B^{0} candidates (matched);#it{p}_{T}(%s) (GeV/#it{c});prong0, #it{M}(K#pi) (GeV/#it{c}^{2});entries", dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisMassDminus}});
+        registry.add("hDecLengthDRecSig", Form("B^{0} candidates (matched);#it{p}_{T}(%s) (GeV/#it{c});%s candidate decay length (cm);entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisDecayLength}});
+        registry.add("hDecLengthXyDRecSig", Form("B^{0} candidates (matched);#it{p}_{T}(%s) (GeV/#it{c});decay length XY (cm);entries", dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisDecayLength}});
+        registry.add("hCospDRecSig", Form("B^{0} candidates (matched);#it{p}_{T}(%s) (GeV/#it{c});%s candidate cos(#vartheta_{P});entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisCosp}});
+        registry.add("hCospXyDRecSig", Form("B^{0} candidates (matched);#it{p}_{T}(%s) (GeV/#it{c});%s candidate cos(#vartheta_{P}^{XY});entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisCosp}});
         // background
         if (fillBackground) {
           registry.add("hMassRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(B^{0}) (GeV/#it{c});#it{M} (D#pi) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {axisPtB0, axisMassB0}});
           registry.add("hDecLengthRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate decay length (cm);entries", {HistType::kTH2F, {axisPtB0, axisDecayLength}});
           registry.add("hDecLengthXyRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(B^{0}) (GeV/#it{c});decay length XY (cm);entries", {HistType::kTH2F, {axisPtB0, axisDecayLength}});
           registry.add("hNormDecLengthXyRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate norm. decay length XY (cm);entries", {HistType::kTH2F, {axisPtB0, axisNormDecayLength}});
-          registry.add("hDcaProng0RecBg", "B^{0} candidates (unmatched);#it{p}_{T}(B^{0}) (GeV/#it{c});prong 0 (D^{#minus}) DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {axisPtB0, axisDca}});
+          registry.add("hDcaProng0RecBg", Form("B^{0} candidates (unmatched);#it{p}_{T}(B^{0}) (GeV/#it{c});prong 0 (%s) DCAxy to prim. vertex (cm);entries", dMesSpecie.c_str()), {HistType::kTH2F, {axisPtB0, axisDca}});
           registry.add("hDcaProng1RecBg", "B^{0} candidates (unmatched);#it{p}_{T}(B^{0}) (GeV/#it{c});prong 1 (#pi^{#plus}) DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {axisPtB0, axisDca}});
-          registry.add("hPtProng0RecBg", "B^{0} candidates (unmatched);#it{p}_{T}(B^{0}) (GeV/#it{c});#it{p}_{T}(D^{#minus}) (GeV/#it{c});entries", {HistType::kTH2F, {axisPtB0, axisPtDminus}});
+          registry.add("hPtProng0RecBg", Form("B^{0} candidates (unmatched);#it{p}_{T}(B^{0}) (GeV/#it{c});#it{p}_{T}(%s) (GeV/#it{c});entries", dMesSpecie.c_str()), {HistType::kTH2F, {axisPtB0, axisPtDminus}});
           registry.add("hPtProng1RecBg", "B^{0} candidates (unmatched);#it{p}_{T}(B^{0}) (GeV/#it{c});#it{p}_{T}(#pi^{#plus}) (GeV/#it{c});entries", {HistType::kTH2F, {axisPtB0, axisPtPi}});
           registry.add("hCospRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate cos(#vartheta_{P});entries", {HistType::kTH2F, {axisPtB0, axisCosp}});
           registry.add("hCospXyRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate cos(#vartheta_{P}^{XY});entries", {HistType::kTH2F, {axisPtB0, axisCosp}});
           registry.add("hEtaRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate #it{#eta};entries", {HistType::kTH2F, {axisPtB0, axisEta}});
           registry.add("hRapidityRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate #it{y};entries", {HistType::kTH2F, {axisPtB0, axisEta}});
           registry.add("hImpParProdRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate impact parameter product;entries", {HistType::kTH2F, {axisPtB0, axisImpParProd}});
-          registry.add("hInvMassDRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(D^{#minus}) (GeV/#it{c});prong0, #it{M}(K#pi) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {axisPtDminus, axisMassDminus}});
-          registry.add("hDecLengthDRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(D^{#minus}) (GeV/#it{c});D^{#minus} candidate decay length (cm);entries", {HistType::kTH2F, {axisPtDminus, axisDecayLength}});
-          registry.add("hDecLengthXyDRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(D^{#minus}) (GeV/#it{c});decay length XY (cm);entries", {HistType::kTH2F, {axisPtDminus, axisDecayLength}});
-          registry.add("hCospDRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(D^{#minus}) (GeV/#it{c});D^{#minus} candidate cos(#vartheta_{P});entries", {HistType::kTH2F, {axisPtDminus, axisCosp}});
-          registry.add("hCospXyDRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(D^{#minus}) (GeV/#it{c});D^{#minus} candidate cos(#vartheta_{P}^{XY});entries", {HistType::kTH2F, {axisPtDminus, axisCosp}});
+          registry.add("hInvMassDRecBg", Form("B^{0} candidates (unmatched);#it{p}_{T}(%s) (GeV/#it{c});prong0, #it{M}(K#pi) (GeV/#it{c}^{2});entries", dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisMassDminus}});
+          registry.add("hDecLengthDRecBg", Form("B^{0} candidates (unmatched);#it{p}_{T}(%s) (GeV/#it{c});%s candidate decay length (cm);entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisDecayLength}});
+          registry.add("hDecLengthXyDRecBg", Form("B^{0} candidates (unmatched);#it{p}_{T}(%s) (GeV/#it{c});decay length XY (cm);entries", dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisDecayLength}});
+          registry.add("hCospDRecBg", Form("B^{0} candidates (unmatched);#it{p}_{T}(%s) (GeV/#it{c});%s candidate cos(#vartheta_{P});entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisCosp}});
+          registry.add("hCospXyDRecBg", Form("B^{0} candidates (unmatched);#it{p}_{T}(%s) (GeV/#it{c});%s candidate cos(#vartheta_{P}^{XY});entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisCosp}});
         }
         // MC checks
-        if (doprocessMcWithDecayTypeCheck || doprocessMcWithB0MlAndDecayTypeCheck || doprocessMcWithDmesMlAndDecayTypeCheck) {
+        if (doprocessMcDplusPiWithDecayTypeCheck || doprocessMcDplusPiWithB0MlAndDecayTypeCheck || doprocessMcDplusPiWithDmesMlAndDecayTypeCheck) {
           constexpr uint8_t kNBinsDecayTypeMc = hf_cand_b0::DecayTypeMc::NDecayTypeMc;
           TString labels[kNBinsDecayTypeMc];
-          labels[hf_cand_b0::DecayTypeMc::B0ToDplusPiToPiKPiPi] = "B^{0} #rightarrow (D^{#minus} #rightarrow #pi^{#minus} K^{#plus} #pi^{#minus}) #pi^{#plus}";
-          labels[hf_cand_b0::DecayTypeMc::B0ToDsPiToKKPiPi] = "B^{0} #rightarrow (D^{#minus}_{s} #rightarrow K^{#minus} K^{#plus} #pi^{#minus}) #pi^{#plus}";
-          labels[hf_cand_b0::DecayTypeMc::BsToDsPiToKKPiPi] = "B_{s}^{0} #rightarrow (D^{#minus}_{s} #rightarrow K^{#minus} K^{#plus} #pi^{#minus}) #pi^{#plus}";
-          labels[hf_cand_b0::DecayTypeMc::B0ToDplusKToPiKPiK] = "B^{0} #rightarrow (D^{#minus} #rightarrow #pi^{#minus} K^{#plus} #pi^{#minus}) K^{#plus}";
+          labels[hf_cand_b0::DecayTypeMc::B0ToDplusPiToPiKPiPi] = Form("B^{0} #rightarrow (%s #rightarrow #pi^{#minus} K^{#plus} #pi^{#minus}) #pi^{#plus}", dMesSpecie.c_str());
+          labels[hf_cand_b0::DecayTypeMc::B0ToDsPiToKKPiPi] = Form("B^{0} #rightarrow (%s_{s} #rightarrow K^{#minus} K^{#plus} #pi^{#minus}) #pi^{#plus}", dMesSpecie.c_str());
+          labels[hf_cand_b0::DecayTypeMc::BsToDsPiToKKPiPi] = Form("B_{s}^{0} #rightarrow (%s_{s} #rightarrow K^{#minus} K^{#plus} #pi^{#minus}) #pi^{#plus}", dMesSpecie.c_str());
+          labels[hf_cand_b0::DecayTypeMc::B0ToDplusKToPiKPiK] = Form("B^{0} #rightarrow (%s #rightarrow #pi^{#minus} K^{#plus} #pi^{#minus}) K^{#plus}", dMesSpecie.c_str());
           labels[hf_cand_b0::DecayTypeMc::PartlyRecoDecay] = "Partly reconstructed decay channel";
           labels[hf_cand_b0::DecayTypeMc::OtherDecay] = "Other decays";
           static const AxisSpec axisDecayType = {kNBinsDecayTypeMc, 0.5, kNBinsDecayTypeMc + 0.5, ""};
@@ -336,18 +352,18 @@ struct HfTaskB0Reduced {
           }
         }
         // ML scores of D- daughter
-        if (doprocessMcWithDmesMl || doprocessMcWithDmesMlAndDecayTypeCheck) {
+        if (doprocessMcDplusPiWithDmesMl || doprocessMcDplusPiWithDmesMlAndDecayTypeCheck || doprocessMcDstarPiWithDmesMl) {
           // signal
-          registry.add("hMlScoreBkgDRecSig", "B^{0} candidates (matched);#it{p}_{T}(D^{#minus}) (GeV/#it{c});prong0, D^{#minus} ML background score;entries", {HistType::kTH2F, {axisPtDminus, axisMlScore}});
-          registry.add("hMlScorePromptDRecSig", "B^{0} candidates (matched);#it{p}_{T}(D^{#minus}) (GeV/#it{c});prong0, D^{#minus} ML prompt score;entries", {HistType::kTH2F, {axisPtDminus, axisMlScore}});
-          registry.add("hMlScoreNonPromptDRecSig", "B^{0} candidates (matched);#it{p}_{T}(D^{#minus}) (GeV/#it{c});prong0, D^{#minus} ML nonprompt score;entries", {HistType::kTH2F, {axisPtDminus, axisMlScore}});
+          registry.add("hMlScoreBkgDRecSig", Form("B^{0} candidates (matched);#it{p}_{T}(%s) (GeV/#it{c});prong0, %s ML background score;entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisMlScore}});
+          registry.add("hMlScorePromptDRecSig", Form("B^{0} candidates (matched);#it{p}_{T}(%s) (GeV/#it{c});prong0, %s ML prompt score;entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisMlScore}});
+          registry.add("hMlScoreNonPromptDRecSig", Form("B^{0} candidates (matched);#it{p}_{T}(%s) (GeV/#it{c});prong0, %s ML nonprompt score;entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisMlScore}});
           // background
-          registry.add("hMlScoreBkgDRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(D^{#minus}) (GeV/#it{c});prong0, D^{#minus} ML background score;entries", {HistType::kTH2F, {axisPtDminus, axisMlScore}});
-          registry.add("hMlScorePromptDRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(D^{#minus}) (GeV/#it{c});prong0, D^{#minus} ML prompt score;entries", {HistType::kTH2F, {axisPtDminus, axisMlScore}});
-          registry.add("hMlScoreNonPromptDRecBg", "B^{0} candidates (unmatched);#it{p}_{T}(D^{#minus}) (GeV/#it{c});prong0, D^{#minus} ML nonprompt score;entries", {HistType::kTH2F, {axisPtDminus, axisMlScore}});
+          registry.add("hMlScoreBkgDRecBg", Form("B^{0} candidates (unmatched);#it{p}_{T}(%s) (GeV/#it{c});prong0, %s ML background score;entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisMlScore}});
+          registry.add("hMlScorePromptDRecBg", Form("B^{0} candidates (unmatched);#it{p}_{T}(%s) (GeV/#it{c});prong0, %s ML prompt score;entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisMlScore}});
+          registry.add("hMlScoreNonPromptDRecBg", Form("B^{0} candidates (unmatched);#it{p}_{T}(%s) (GeV/#it{c});prong0, %s ML nonprompt score;entries", dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTH2F, {axisPtDminus, axisMlScore}});
         }
         // ML scores of B0 candidate
-        if (doprocessMcWithB0Ml || doprocessMcWithB0MlAndDecayTypeCheck) {
+        if (doprocessMcDplusPiWithB0Ml || doprocessMcDplusPiWithB0MlAndDecayTypeCheck || doprocessMcDstarPiWithB0Ml) {
           // signal
           registry.add("hMlScoreSigB0RecSig", "B^{0} candidates (matched);#it{p}_{T}(B^{0}) (GeV/#it{c});prong0, B^{0} ML signal score;entries", {HistType::kTH2F, {axisPtB0, axisMlScore}});
           // background
@@ -360,15 +376,15 @@ struct HfTaskB0Reduced {
         registry.add("hPtYWithProngsInAccepanceGenSig", "B^{0} particles (generated-daughters in acceptance);#it{p}_{T}(B^{0}) (GeV/#it{c});#it{y}(B^{0})", {HistType::kTHnSparseF, {axisPtB0, axisEta}});
 
         // reco sparses
-        if (!(doprocessDataWithDmesMl || doprocessDataWithB0Ml)) {
-          registry.add("hMassPtCutVarsRecSig", "B^{0} candidates (matched);#it{M} (D#pi) (GeV/#it{c}^{2});#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate decay length (cm);B^{0} candidate norm. decay length XY (cm);B^{0} candidate impact parameter product (cm);B^{0} candidate cos(#vartheta_{P});#it{M} (K#pi) (GeV/#it{c}^{2});#it{p}_{T}(D^{#minus}) (GeV/#it{c});D^{#minus} candidate decay length (cm);D^{#minus} candidate cos(#vartheta_{P})", {HistType::kTHnSparseF, {axisMassB0, axisPtB0, axisDecayLength, axisNormDecayLength, axisImpParProd, axisCosp, axisMassDminus, axisPtDminus, axisDecayLength, axisCosp}});
+        if (!(doprocessDataDplusPiWithDmesMl || doprocessDataDplusPiWithB0Ml || doprocessDataDstarPiWithDmesMl || doprocessDataDstarPiWithB0Ml)) {
+          registry.add("hMassPtCutVarsRecSig", Form("B^{0} candidates (matched);#it{M} (D#pi) (GeV/#it{c}^{2});#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate decay length (cm);B^{0} candidate norm. decay length XY (cm);B^{0} candidate impact parameter product (cm);B^{0} candidate cos(#vartheta_{P});#it{M} (K#pi) (GeV/#it{c}^{2});#it{p}_{T}(%s) (GeV/#it{c});%s candidate decay length (cm);%s candidate cos(#vartheta_{P})", dMesSpecie.c_str(), dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTHnSparseF, {axisMassB0, axisPtB0, axisDecayLength, axisNormDecayLength, axisImpParProd, axisCosp, axisMassDminus, axisPtDminus, axisDecayLength, axisCosp}});
           if (fillBackground) {
-            registry.add("hMassPtCutVarsRecBg", "B^{0} candidates (unmatched);#it{M} (D#pi) (GeV/#it{c}^{2});#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate decay length (cm);B^{0} candidate norm. decay length XY (cm);B^{0} candidate impact parameter product (cm);B^{0} candidate cos(#vartheta_{P});#it{M} (K#pi) (GeV/#it{c}^{2});#it{p}_{T}(D^{#minus}) (GeV/#it{c});D^{#minus} candidate decay length (cm);D^{#minus} candidate cos(#vartheta_{P})", {HistType::kTHnSparseF, {axisMassB0, axisPtB0, axisDecayLength, axisNormDecayLength, axisImpParProd, axisCosp, axisMassDminus, axisPtDminus, axisDecayLength, axisCosp}});
+            registry.add("hMassPtCutVarsRecBg", Form("B^{0} candidates (unmatched);#it{M} (D#pi) (GeV/#it{c}^{2});#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate decay length (cm);B^{0} candidate norm. decay length XY (cm);B^{0} candidate impact parameter product (cm);B^{0} candidate cos(#vartheta_{P});#it{M} (K#pi) (GeV/#it{c}^{2});#it{p}_{T}(%s) (GeV/#it{c});%s candidate decay length (cm);%s candidate cos(#vartheta_{P})", dMesSpecie.c_str(), dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTHnSparseF, {axisMassB0, axisPtB0, axisDecayLength, axisNormDecayLength, axisImpParProd, axisCosp, axisMassDminus, axisPtDminus, axisDecayLength, axisCosp}});
           }
         } else {
-          registry.add("hMassPtCutVarsRecSig", "B^{0} candidates (matched);#it{M} (D#pi) (GeV/#it{c}^{2});#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate decay length (cm);B^{0} candidate norm. decay length XY (cm);B^{0} candidate impact parameter product (cm);B^{0} candidate cos(#vartheta_{P});#it{M} (K#pi) (GeV/#it{c}^{2});#it{p}_{T}(D^{#minus}) (GeV/#it{c});D^{#minus} candidate ML score bkg;D^{#minus} candidate ML score nonprompt", {HistType::kTHnSparseF, {axisMassB0, axisPtB0, axisDecayLength, axisNormDecayLength, axisImpParProd, axisCosp, axisMassDminus, axisPtDminus, axisMlScore, axisMlScore}});
+          registry.add("hMassPtCutVarsRecSig", Form("B^{0} candidates (matched);#it{M} (D#pi) (GeV/#it{c}^{2});#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate decay length (cm);B^{0} candidate norm. decay length XY (cm);B^{0} candidate impact parameter product (cm);B^{0} candidate cos(#vartheta_{P});#it{M} (K#pi) (GeV/#it{c}^{2});#it{p}_{T}(%s) (GeV/#it{c});%s candidate ML score bkg;%s candidate ML score nonprompt", dMesSpecie.c_str(), dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTHnSparseF, {axisMassB0, axisPtB0, axisDecayLength, axisNormDecayLength, axisImpParProd, axisCosp, axisMassDminus, axisPtDminus, axisMlScore, axisMlScore}});
           if (fillBackground) {
-            registry.add("hMassPtCutVarsRecBg", "B^{0} candidates (unmatched);#it{M} (D#pi) (GeV/#it{c}^{2});#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate decay length (cm);B^{0} candidate norm. decay length XY (cm);B^{0} candidate impact parameter product (cm);B^{0} candidate cos(#vartheta_{P});#it{M} (K#pi) (GeV/#it{c}^{2});#it{p}_{T}(D^{#minus}) (GeV/#it{c});D^{#minus} candidate ML score bkg;D^{#minus} candidate ML score nonprompt", {HistType::kTHnSparseF, {axisMassB0, axisPtB0, axisDecayLength, axisNormDecayLength, axisImpParProd, axisCosp, axisMassDminus, axisPtDminus, axisMlScore, axisMlScore}});
+            registry.add("hMassPtCutVarsRecBg", Form("B^{0} candidates (unmatched);#it{M} (D#pi) (GeV/#it{c}^{2});#it{p}_{T}(B^{0}) (GeV/#it{c});B^{0} candidate decay length (cm);B^{0} candidate norm. decay length XY (cm);B^{0} candidate impact parameter product (cm);B^{0} candidate cos(#vartheta_{P});#it{M} (K#pi) (GeV/#it{c}^{2});#it{p}_{T}(%s) (GeV/#it{c});%s candidate ML score bkg;%s candidate ML score nonprompt", dMesSpecie.c_str(), dMesSpecie.c_str(), dMesSpecie.c_str()), {HistType::kTHnSparseF, {axisMassB0, axisPtB0, axisDecayLength, axisNormDecayLength, axisImpParProd, axisCosp, axisMassDminus, axisPtDminus, axisMlScore, axisMlScore}});
           }
         }
       }
@@ -396,6 +412,7 @@ struct HfTaskB0Reduced {
   void fillCand(Cand const& candidate,
                 CandsDmes const&)
   {
+    LOG(info) << "Filling B0 candidate information at reconstruction level";
     auto ptCandB0 = candidate.pt();
     auto invMassB0 = hfHelper.invMassB0ToDPi(candidate);
     auto candD = candidate.template prong0_as<CandsDmes>();
@@ -412,12 +429,19 @@ struct HfTaskB0Reduced {
     int8_t flagMcMatchRec = 0;
     int8_t flagWrongCollision = 0;
     bool isSignal = false;
+    int mcSgnFlag{0};
+    if (std::is_same_v<CandsDmes, CandsDplus>) {
+      mcSgnFlag = hf_cand_b0::DecayTypeMc::B0ToDplusPiToPiKPiPi;
+    } else {
+      mcSgnFlag = hf_cand_b0::DecayTypeMc::B0ToDstarPiToD0PiPiToKPiPiPi;
+    }
     if constexpr (doMc) {
       flagMcMatchRec = candidate.flagMcMatchRec();
       flagWrongCollision = candidate.flagWrongCollision();
-      isSignal = TESTBIT(std::abs(flagMcMatchRec), hf_cand_b0::DecayTypeMc::B0ToDplusPiToPiKPiPi);
+      isSignal = TESTBIT(std::abs(flagMcMatchRec), mcSgnFlag);
     }
 
+    LOG(info) << "Filling histos";
     if (fillHistograms) {
       if constexpr (doMc) {
         if (isSignal) {
@@ -440,7 +464,7 @@ struct HfTaskB0Reduced {
           registry.fill(HIST("hCospDRecSig"), ptD, cospD);
           registry.fill(HIST("hCospXyDRecSig"), ptD, cospXyD);
           if constexpr (withDecayTypeCheck) {
-            registry.fill(HIST("hDecayTypeMc"), 1 + hf_cand_b0::DecayTypeMc::B0ToDplusPiToPiKPiPi, invMassB0, ptCandB0);
+            registry.fill(HIST("hDecayTypeMc"), 1 + mcSgnFlag, invMassB0, ptCandB0);
           }
           if constexpr (withDmesMl) {
             registry.fill(HIST("hMlScoreBkgDRecSig"), ptD, candidate.prong0MlScoreBkg());
@@ -520,6 +544,7 @@ struct HfTaskB0Reduced {
         }
       }
     }
+    LOG(info) << "Filling sparses";
     if (fillSparses) {
       if constexpr (doMc) {
         if (isSignal) {
@@ -543,6 +568,7 @@ struct HfTaskB0Reduced {
         }
       }
     }
+    LOG(info) << "Filling tree";
     if (fillTree) {
       float pseudoRndm = ptD * 1000. - static_cast<int64_t>(ptD * 1000);
       if (flagMcMatchRec != 0 || (((doMc && fillBackground) || !doMc) && (ptCandB0 >= ptMaxForDownSample || pseudoRndm < downSampleBkgFactor))) {
@@ -563,6 +589,20 @@ struct HfTaskB0Reduced {
         float ptMother = -1.;
         if constexpr (doMc) {
           ptMother = candidate.ptMother();
+        }
+
+        double tpcNSigmaPiProng2{0.f}, tofNSigmaPiProng2{0.f}, tpcTofNSigmaPiProng2{0.f};
+        if constexpr (std::is_same_v<CandsDmes, CandsDplus>) {
+          LOG(info) << "Filling B0 candidate with D+ prong";
+          tpcNSigmaPiProng2 = candD.tpcNSigmaPiProng2();
+          tofNSigmaPiProng2 = candD.tofNSigmaPiProng2();
+          tpcTofNSigmaPiProng2 = candD.tpcTofNSigmaPiProng2();
+        } else {
+          LOG(info) << "Filling B0 candidate with D* prong";
+          auto softPi = candD.template softPi_as<TracksSoftPions>();
+          tpcNSigmaPiProng2 = softPi.tpcNSigmaPiSoftPi();
+          tofNSigmaPiProng2 = softPi.tofNSigmaPiSoftPi();
+          tpcTofNSigmaPiProng2 = softPi.tpcTofNSigmaPiSoftPi();
         }
 
         hfRedCandB0Lite(
@@ -600,9 +640,9 @@ struct HfTaskB0Reduced {
           candD.tpcNSigmaKaProng1(),
           candD.tofNSigmaKaProng1(),
           candD.tpcTofNSigmaKaProng1(),
-          candD.tpcNSigmaPiProng2(),
-          candD.tofNSigmaPiProng2(),
-          candD.tpcTofNSigmaPiProng2(),
+          tpcNSigmaPiProng2,
+          tofNSigmaPiProng2,
+          tpcTofNSigmaPiProng2,
           prong0MlScoreBkg,
           prong0MlScorePrompt,
           prong0MlScoreNonprompt,
@@ -640,6 +680,7 @@ struct HfTaskB0Reduced {
         }
       }
     }
+    LOG(info) << "Filling candidate done";
   }
 
   /// Fill particle histograms (gen MC truth)
@@ -681,7 +722,7 @@ struct HfTaskB0Reduced {
   }
 
   // Process functions
-  void processData(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfSelB0ToDPi>> const& candidates,
+  void processDataDplusPi(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfSelB0ToDPi>> const& candidates,
                    CandsDplus const& candidatesD,
                    TracksPion const&)
   {
@@ -691,10 +732,10 @@ struct HfTaskB0Reduced {
       }
       fillCand<false, false, false, false>(candidate, candidatesD);
     } // candidate loop
-  } // processData
-  PROCESS_SWITCH(HfTaskB0Reduced, processData, "Process data without ML scores for B0 and D daughter", true);
+  } // processDataDplusPi
+  PROCESS_SWITCH(HfTaskB0Reduced, processDataDplusPi, "Process data without ML scores for B0 and Dplus daughter", true);
 
-  void processDataWithDmesMl(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfRedB0DpMls, aod::HfSelB0ToDPi>> const& candidates,
+  void processDataDplusPiWithDmesMl(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfRedB0DpMls, aod::HfSelB0ToDPi>> const& candidates,
                              CandsDplus const& candidatesD,
                              TracksPion const&)
   {
@@ -704,10 +745,10 @@ struct HfTaskB0Reduced {
       }
       fillCand<false, false, true, false>(candidate, candidatesD);
     } // candidate loop
-  } // processDataWithDmesMl
-  PROCESS_SWITCH(HfTaskB0Reduced, processDataWithDmesMl, "Process data with(out) ML scores for D daughter (B0)", false);
+  } // processDataDplusPiWithDmesMl
+  PROCESS_SWITCH(HfTaskB0Reduced, processDataDplusPiWithDmesMl, "Process data with(out) ML scores for Dplus daughter (B0)", false);
 
-  void processDataWithB0Ml(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfMlB0ToDPi, aod::HfSelB0ToDPi>> const& candidates,
+  void processDataDplusPiWithB0Ml(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfMlB0ToDPi, aod::HfSelB0ToDPi>> const& candidates,
                            CandsDplus const& candidatesD,
                            TracksPion const&)
   {
@@ -717,10 +758,53 @@ struct HfTaskB0Reduced {
       }
       fillCand<false, false, false, true>(candidate, candidatesD);
     } // candidate loop
-  } // processDataWithB0Ml
-  PROCESS_SWITCH(HfTaskB0Reduced, processDataWithB0Ml, "Process data with(out) ML scores for B0 (D daughter)", false);
+  } // processDataDplusPiWithB0Ml
+  PROCESS_SWITCH(HfTaskB0Reduced, processDataDplusPiWithB0Ml, "Process data with(out) ML scores for B0 (Dplus daughter)", false);
 
-  void processMc(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
+  // Process functions
+  void processDataDstarPi(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfSelB0ToDPi>> const& candidates,
+                   CandsDstar const& candidatesD,
+                   TracksPion const&,
+                   TracksSoftPions const&)
+  {
+    for (const auto& candidate : candidates) {
+      if (yCandRecoMax >= 0. && std::abs(hfHelper.yB0(candidate)) > yCandRecoMax) {
+        continue;
+      }
+      fillCand<false, false, false, false>(candidate, candidatesD);
+    } // candidate loop
+  } // processDataDstarPi
+  PROCESS_SWITCH(HfTaskB0Reduced, processDataDstarPi, "Process data without ML scores for B0 and Dstar daughter", false);
+
+  void processDataDstarPiWithDmesMl(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfRedB0DpMls, aod::HfSelB0ToDPi>> const& candidates,
+                             CandsDstar const& candidatesD,
+                             TracksPion const&,
+                             TracksSoftPions const&)
+  {
+    for (const auto& candidate : candidates) {
+      if (yCandRecoMax >= 0. && std::abs(hfHelper.yB0(candidate)) > yCandRecoMax) {
+        continue;
+      }
+      fillCand<false, false, true, false>(candidate, candidatesD);
+    } // candidate loop
+  } // processDataDstarPiWithDmesMl
+  PROCESS_SWITCH(HfTaskB0Reduced, processDataDstarPiWithDmesMl, "Process data with(out) ML scores for Dstar daughter (B0)", false);
+
+  void processDataDstarPiWithB0Ml(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfMlB0ToDPi, aod::HfSelB0ToDPi>> const& candidates,
+                           CandsDstar const& candidatesD,
+                           TracksPion const&,
+                           TracksSoftPions const&)
+  {
+    for (const auto& candidate : candidates) {
+      if (yCandRecoMax >= 0. && std::abs(hfHelper.yB0(candidate)) > yCandRecoMax) {
+        continue;
+      }
+      fillCand<false, false, false, true>(candidate, candidatesD);
+    } // candidate loop
+  } // processDataDstarPiWithB0Ml
+  PROCESS_SWITCH(HfTaskB0Reduced, processDataDstarPiWithB0Ml, "Process data with(out) ML scores for B0 (Dstar daughter)", false);
+
+  void processMcDplusPi(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
                  aod::HfMcGenRedB0s const& mcParticles,
                  CandsDplus const& candidatesD,
                  TracksPion const&)
@@ -737,10 +821,10 @@ struct HfTaskB0Reduced {
     for (const auto& particle : mcParticles) {
       fillCandMcGen(particle);
     } // gen
-  } // processMc
-  PROCESS_SWITCH(HfTaskB0Reduced, processMc, "Process MC without ML scores for B0 and D daughter", false);
+  } // processMcDplusPi
+  PROCESS_SWITCH(HfTaskB0Reduced, processMcDplusPi, "Process MC without ML scores for B0 and Dplus daughter", false);
 
-  void processMcWithDecayTypeCheck(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s, aod::HfMcCheckB0s>> const& candidates,
+  void processMcDplusPiWithDecayTypeCheck(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s, aod::HfMcCheckB0s>> const& candidates,
                                    aod::HfMcGenRedB0s const& mcParticles,
                                    CandsDplus const& candidatesD,
                                    TracksPion const&)
@@ -757,10 +841,10 @@ struct HfTaskB0Reduced {
     for (const auto& particle : mcParticles) {
       fillCandMcGen(particle);
     } // gen
-  } // processMc
-  PROCESS_SWITCH(HfTaskB0Reduced, processMcWithDecayTypeCheck, "Process MC with decay type check and without ML scores for B0 and D daughter", false);
+  } // processMcDplusPi
+  PROCESS_SWITCH(HfTaskB0Reduced, processMcDplusPiWithDecayTypeCheck, "Process MC with decay type check and without ML scores for B0 and Dplus daughter", false);
 
-  void processMcWithDmesMl(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfRedB0DpMls, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
+  void processMcDplusPiWithDmesMl(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfRedB0DpMls, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
                            aod::HfMcGenRedB0s const& mcParticles,
                            CandsDplus const& candidatesD,
                            TracksPion const&)
@@ -777,10 +861,10 @@ struct HfTaskB0Reduced {
     for (const auto& particle : mcParticles) {
       fillCandMcGen(particle);
     } // gen
-  } // processMcWithDmesMl
-  PROCESS_SWITCH(HfTaskB0Reduced, processMcWithDmesMl, "Process MC with(out) ML scores for D daughter (B0)", false);
+  } // processMcDplusPiWithDmesMl
+  PROCESS_SWITCH(HfTaskB0Reduced, processMcDplusPiWithDmesMl, "Process MC with(out) ML scores for Dplus daughter (B0)", false);
 
-  void processMcWithDmesMlAndDecayTypeCheck(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfRedB0DpMls, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s, aod::HfMcCheckB0s>> const& candidates,
+  void processMcDplusPiWithDmesMlAndDecayTypeCheck(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfRedB0DpMls, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s, aod::HfMcCheckB0s>> const& candidates,
                                             aod::HfMcGenRedB0s const& mcParticles,
                                             CandsDplus const& candidatesD,
                                             TracksPion const&)
@@ -797,10 +881,10 @@ struct HfTaskB0Reduced {
     for (const auto& particle : mcParticles) {
       fillCandMcGen(particle);
     } // gen
-  } // processMc
-  PROCESS_SWITCH(HfTaskB0Reduced, processMcWithDmesMlAndDecayTypeCheck, "Process MC with decay type check and with(out) ML scores for B0 (D daughter)", false);
+  } // processMcDplusPi
+  PROCESS_SWITCH(HfTaskB0Reduced, processMcDplusPiWithDmesMlAndDecayTypeCheck, "Process MC with decay type check and with(out) ML scores for B0 (Dplus daughter)", false);
 
-  void processMcWithB0Ml(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfMlB0ToDPi, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
+  void processMcDplusPiWithB0Ml(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfMlB0ToDPi, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
                          aod::HfMcGenRedB0s const& mcParticles,
                          CandsDplus const& candidatesD,
                          TracksPion const&)
@@ -817,10 +901,10 @@ struct HfTaskB0Reduced {
     for (const auto& particle : mcParticles) {
       fillCandMcGen(particle);
     } // gen
-  } // processMcWithB0Ml
-  PROCESS_SWITCH(HfTaskB0Reduced, processMcWithB0Ml, "Process MC with(out) ML scores for B0 (D daughter)", false);
+  } // processMcDplusPiWithB0Ml
+  PROCESS_SWITCH(HfTaskB0Reduced, processMcDplusPiWithB0Ml, "Process MC with(out) ML scores for B0 (Dplus daughter)", false);
 
-  void processMcWithB0MlAndDecayTypeCheck(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfMlB0ToDPi, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s, aod::HfMcCheckB0s>> const& candidates,
+  void processMcDplusPiWithB0MlAndDecayTypeCheck(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfMlB0ToDPi, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s, aod::HfMcCheckB0s>> const& candidates,
                                           aod::HfMcGenRedB0s const& mcParticles,
                                           CandsDplus const& candidatesD,
                                           TracksPion const&)
@@ -837,8 +921,72 @@ struct HfTaskB0Reduced {
     for (const auto& particle : mcParticles) {
       fillCandMcGen(particle);
     } // gen
-  } // processMc
-  PROCESS_SWITCH(HfTaskB0Reduced, processMcWithB0MlAndDecayTypeCheck, "Process MC with decay type check and with(out) ML scores for B0 (D daughter)", false);
+  } // processMcDplusPi
+  PROCESS_SWITCH(HfTaskB0Reduced, processMcDplusPiWithB0MlAndDecayTypeCheck, "Process MC with decay type check and with(out) ML scores for B0 (Dplus daughter)", false);
+
+  void processMcDstarPi(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
+                        aod::HfMcGenRedB0s const& mcParticles,
+                        CandsDstar const& candidatesD,
+                        TracksPion const&,
+                        TracksSoftPions const&)
+  {
+    // MC rec
+    for (const auto& candidate : candidates) {
+      if (yCandRecoMax >= 0. && std::abs(hfHelper.yB0(candidate)) > yCandRecoMax) {
+        continue;
+      }
+      fillCand<true, false, false, false>(candidate, candidatesD);
+    } // rec
+
+    // MC gen. level
+    for (const auto& particle : mcParticles) {
+      fillCandMcGen(particle);
+    } // gen
+  } // processMcDstarPi
+  PROCESS_SWITCH(HfTaskB0Reduced, processMcDstarPi, "Process MC without ML scores for B0 and Dstar daughter", false);
+
+  void processMcDstarPiWithDmesMl(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfRedB0DpMls, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
+                                  aod::HfMcGenRedB0s const& mcParticles,
+                                  CandsDstar const& candidatesD,
+                                  TracksPion const&,
+                                  TracksSoftPions const&)
+  {
+    // MC rec
+    for (const auto& candidate : candidates) {
+      if (yCandRecoMax >= 0. && std::abs(hfHelper.yB0(candidate)) > yCandRecoMax) {
+        continue;
+      }
+      fillCand<true, false, true, false>(candidate, candidatesD);
+    } // rec
+
+    // MC gen. level
+    for (const auto& particle : mcParticles) {
+      fillCandMcGen(particle);
+    } // gen
+  } // processMcDstarPiWithDmesMl
+  PROCESS_SWITCH(HfTaskB0Reduced, processMcDstarPiWithDmesMl, "Process MC with(out) ML scores for Dstar daughter (B0)", false);
+
+  void processMcDstarPiWithB0Ml(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfMlB0ToDPi, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
+                                aod::HfMcGenRedB0s const& mcParticles,
+                                CandsDstar const& candidatesD,
+                                TracksPion const&,
+                                TracksSoftPions const&)
+  {
+    // MC rec
+    for (const auto& candidate : candidates) {
+      if (yCandRecoMax >= 0. && std::abs(hfHelper.yB0(candidate)) > yCandRecoMax) {
+        continue;
+      }
+      fillCand<true, false, false, true>(candidate, candidatesD);
+    } // rec
+
+    // MC gen. level
+    for (const auto& particle : mcParticles) {
+      fillCandMcGen(particle);
+    } // gen
+  } // processMcDstarPiWithB0Ml
+  PROCESS_SWITCH(HfTaskB0Reduced, processMcDstarPiWithB0Ml, "Process MC with(out) ML scores for B0 (Dstar daughter)", false);
+
 }; // struct
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
