@@ -49,11 +49,6 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 using namespace o2::hf_trkcandsel;
 
-template <typename T>
-concept HasSoftPi = requires(T candidate) {
-  candidate.softPiId();
-};
-
 /// Reconstruction of B0 candidates
 struct HfCandidateCreatorB0Reduced {
   Produces<aod::HfCandB0Base> rowCandidateBase;              // table defined in CandidateReconstructionTables.h
@@ -148,7 +143,6 @@ struct HfCandidateCreatorB0Reduced {
   /// \param tracksPionThisCollision pion tracks in this collision
   /// \param invMass2DPiMin minimum B0 invariant-mass
   /// \param invMass2DPiMax maximum B0 invariant-mass
-  // template <bool withDmesMl, HasSoftPi Cands, typename Pions, typename Coll>
   template <bool withDmesMl, typename Cands, typename Pions, typename Coll>
   void runCandidateCreationDStar(Coll const& collision,
                             Cands const& candsDThisColl,
@@ -278,7 +272,6 @@ struct HfCandidateCreatorB0Reduced {
                             const float& invMass2DPiMin,
                             const float& invMass2DPiMax)
   {
-    LOG(info) << "Run candidate creation D+";
     auto primaryVertex = getPrimaryVertex(collision);
     auto covMatrixPV = primaryVertex.getCov();
 

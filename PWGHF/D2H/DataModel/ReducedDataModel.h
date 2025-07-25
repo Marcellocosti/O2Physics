@@ -245,7 +245,6 @@ DECLARE_SOA_COLUMN(TOFNSigmaKaProng2, tofNSigmaKaProng2, float); //! NsigmaTOFKa
 DECLARE_SOA_COLUMN(TOFNSigmaPrProng0, tofNSigmaPrProng0, float); //! NsigmaTOFPr for prong0, o2-linter: disable=name/o2-column (written to disk)
 DECLARE_SOA_COLUMN(TOFNSigmaPrProng1, tofNSigmaPrProng1, float); //! NsigmaTOFPr for prong1, o2-linter: disable=name/o2-column (written to disk)
 DECLARE_SOA_COLUMN(TOFNSigmaPrProng2, tofNSigmaPrProng2, float); //! NsigmaTOFPr for prong2, o2-linter: disable=name/o2-column (written to disk)
-
 // dynamic columns
 DECLARE_SOA_DYNAMIC_COLUMN(TPCTOFNSigmaPi, tpcTofNSigmaPi, //! Combination of NsigmaTPC and NsigmaTOF, o2-linter: disable=name/o2-column (written to disk)
                            [](float tpcNSigmaPi, float tofNSigmaPi) -> float { return pid_tpc_tof_utils::combineNSigma<false /*tiny*/>(tpcNSigmaPi, tofNSigmaPi); });
