@@ -409,6 +409,288 @@ struct HfTaskB0Reduced {
   /// \param candidate is the B0 candidate
   /// \param candidatesD is the table with D- candidates
   template <bool doMc, bool withDecayTypeCheck, bool withDmesMl, bool withB0Ml, typename Cand, typename CandsDmes>
+  void fillCandDStar(Cand const& candidate,
+                     CandsDmes const&)
+  {
+    LOG(info) << "Filling B0 candidate information at reconstruction level";
+    auto ptCandB0 = candidate.pt();
+    auto invMassB0 = hfHelper.invMassB0ToDPi(candidate);
+    auto candD = candidate.template prongDStar_as<CandsDmes>();
+    auto ptD = candidate.ptProng0();
+    auto invMassD = candD.invMassHypo0();
+    std::array<float, 3> posPv{candidate.posX(), candidate.posY(), candidate.posZ()};
+    std::array<float, 3> posSvD{candD.xSecondaryVertex(), candD.ySecondaryVertex(), candD.zSecondaryVertex()};
+    std::array<float, 3> momD{candD.pVector()};
+    auto cospD = RecoDecay::cpa(posPv, posSvD, momD);
+    auto cospXyD = RecoDecay::cpaXY(posPv, posSvD, momD);
+    auto decLenD = RecoDecay::distance(posPv, posSvD);
+    auto decLenXyD = RecoDecay::distanceXY(posPv, posSvD);
+
+    int8_t flagMcMatchRec = 0;
+    int8_t flagWrongCollision = 0;
+    bool isSignal = false;
+    int mcSgnFlag{0};
+    if (std::is_same_v<CandsDmes, CandsDplus>) {
+      mcSgnFlag = hf_cand_b0::DecayTypeMc::B0ToDplusPiToPiKPiPi;
+    } else {
+      mcSgnFlag = hf_cand_b0::DecayTypeMc::B0ToDstarPiToD0PiPiToKPiPiPi;
+    }
+    if constexpr (doMc) {
+      flagMcMatchRec = candidate.flagMcMatchRec();
+      flagWrongCollision = candidate.flagWrongCollision();
+      isSignal = TESTBIT(std::abs(flagMcMatchRec), mcSgnFlag);
+    }
+
+    LOG(info) << "Filling histos";
+    if (fillHistograms) {
+      if constexpr (doMc) {
+        if (isSignal) {
+          registry.fill(HIST("hMassRecSig"), ptCandB0, hfHelper.invMassB0ToDPi(candidate));
+          registry.fill(HIST("hPtProng0RecSig"), ptCandB0, candidate.ptProng0());
+          registry.fill(HIST("hPtProng1RecSig"), ptCandB0, candidate.ptProng1());
+          registry.fill(HIST("hImpParProdRecSig"), ptCandB0, candidate.impactParameterProduct());
+          registry.fill(HIST("hDecLengthRecSig"), ptCandB0, candidate.decayLength());
+          registry.fill(HIST("hDecLengthXyRecSig"), ptCandB0, candidate.decayLengthXY());
+          registry.fill(HIST("hNormDecLengthXyRecSig"), ptCandB0, candidate.decayLengthXY() / candidate.errorDecayLengthXY());
+          registry.fill(HIST("hDcaProng0RecSig"), ptCandB0, candidate.impactParameter0());
+          registry.fill(HIST("hDcaProng1RecSig"), ptCandB0, candidate.impactParameter1());
+          registry.fill(HIST("hCospRecSig"), ptCandB0, candidate.cpa());
+          registry.fill(HIST("hCospXyRecSig"), ptCandB0, candidate.cpaXY());
+          registry.fill(HIST("hEtaRecSig"), ptCandB0, candidate.eta());
+          registry.fill(HIST("hRapidityRecSig"), ptCandB0, hfHelper.yB0(candidate));
+          registry.fill(HIST("hInvMassDRecSig"), ptD, invMassD);
+          registry.fill(HIST("hDecLengthDRecSig"), ptD, decLenD);
+          registry.fill(HIST("hDecLengthXyDRecSig"), ptD, decLenXyD);
+          registry.fill(HIST("hCospDRecSig"), ptD, cospD);
+          registry.fill(HIST("hCospXyDRecSig"), ptD, cospXyD);
+          if constexpr (withDecayTypeCheck) {
+            registry.fill(HIST("hDecayTypeMc"), 1 + mcSgnFlag, invMassB0, ptCandB0);
+          }
+          if constexpr (withDmesMl) {
+            registry.fill(HIST("hMlScoreBkgDRecSig"), ptD, candidate.prong0MlScoreBkg());
+            registry.fill(HIST("hMlScorePromptDRecSig"), ptD, candidate.prong0MlScorePrompt());
+            registry.fill(HIST("hMlScoreNonPromptDRecSig"), ptD, candidate.prong0MlScoreNonprompt());
+          }
+          if constexpr (withB0Ml) {
+            registry.fill(HIST("hMlScoreSigB0RecSig"), ptCandB0, candidate.mlProbB0ToDPi());
+          }
+        } else if (fillBackground) {
+          registry.fill(HIST("hMassRecBg"), ptCandB0, hfHelper.invMassB0ToDPi(candidate));
+          registry.fill(HIST("hPtProng0RecBg"), ptCandB0, candidate.ptProng0());
+          registry.fill(HIST("hPtProng1RecBg"), ptCandB0, candidate.ptProng1());
+          registry.fill(HIST("hImpParProdRecBg"), ptCandB0, candidate.impactParameterProduct());
+          registry.fill(HIST("hDecLengthRecBg"), ptCandB0, candidate.decayLength());
+          registry.fill(HIST("hDecLengthXyRecBg"), ptCandB0, candidate.decayLengthXY());
+          registry.fill(HIST("hNormDecLengthXyRecBg"), ptCandB0, candidate.decayLengthXY() / candidate.errorDecayLengthXY());
+          registry.fill(HIST("hDcaProng0RecBg"), ptCandB0, candidate.impactParameter0());
+          registry.fill(HIST("hDcaProng1RecBg"), ptCandB0, candidate.impactParameter1());
+          registry.fill(HIST("hCospRecBg"), ptCandB0, candidate.cpa());
+          registry.fill(HIST("hCospXyRecBg"), ptCandB0, candidate.cpaXY());
+          registry.fill(HIST("hEtaRecBg"), ptCandB0, candidate.eta());
+          registry.fill(HIST("hRapidityRecBg"), ptCandB0, hfHelper.yB0(candidate));
+          registry.fill(HIST("hInvMassDRecBg"), ptD, invMassD);
+          registry.fill(HIST("hDecLengthDRecBg"), ptD, decLenD);
+          registry.fill(HIST("hDecLengthXyDRecBg"), ptD, decLenXyD);
+          registry.fill(HIST("hCospDRecBg"), ptD, cospD);
+          registry.fill(HIST("hCospXyDRecBg"), ptD, cospXyD);
+          if constexpr (withDmesMl) {
+            registry.fill(HIST("hMlScoreBkgDRecBg"), ptD, candidate.prong0MlScoreBkg());
+            registry.fill(HIST("hMlScorePromptDRecBg"), ptD, candidate.prong0MlScorePrompt());
+            registry.fill(HIST("hMlScoreNonPromptDRecBg"), ptD, candidate.prong0MlScoreNonprompt());
+          }
+          if constexpr (withB0Ml) {
+            registry.fill(HIST("hMlScoreSigB0RecBg"), ptCandB0, candidate.mlProbB0ToDPi());
+          }
+        } else if constexpr (withDecayTypeCheck) {
+          if (TESTBIT(flagMcMatchRec, hf_cand_b0::DecayTypeMc::B0ToDsPiToKKPiPi)) { // B0 → Ds- π+ → (K- K+ π-) π+
+            registry.fill(HIST("hDecayTypeMc"), 1 + hf_cand_b0::DecayTypeMc::B0ToDsPiToKKPiPi, invMassB0, ptCandB0);
+          } else if (TESTBIT(flagMcMatchRec, hf_cand_b0::DecayTypeMc::BsToDsPiToKKPiPi)) { // B0s → Ds- π+ → (K- K+ π-) π+
+            registry.fill(HIST("hDecayTypeMc"), 1 + hf_cand_b0::DecayTypeMc::BsToDsPiToKKPiPi, invMassB0, ptCandB0);
+          } else if (TESTBIT(flagMcMatchRec, hf_cand_b0::DecayTypeMc::B0ToDplusKToPiKPiK)) { // B0 → D- K+ → (π- K+ π-) K+
+            registry.fill(HIST("hDecayTypeMc"), 1 + hf_cand_b0::DecayTypeMc::B0ToDplusKToPiKPiK, invMassB0, ptCandB0);
+          } else if (TESTBIT(flagMcMatchRec, hf_cand_b0::DecayTypeMc::PartlyRecoDecay)) { // Partly reconstructed decay channel
+            registry.fill(HIST("hDecayTypeMc"), 1 + hf_cand_b0::DecayTypeMc::PartlyRecoDecay, invMassB0, ptCandB0);
+          } else {
+            registry.fill(HIST("hDecayTypeMc"), 1 + hf_cand_b0::DecayTypeMc::OtherDecay, invMassB0, ptCandB0);
+          }
+        }
+      } else {
+        registry.fill(HIST("hMass"), ptCandB0, invMassB0);
+        registry.fill(HIST("hPtProng0"), ptCandB0, candidate.ptProng0());
+        registry.fill(HIST("hPtProng1"), ptCandB0, candidate.ptProng1());
+        registry.fill(HIST("hImpParProd"), ptCandB0, candidate.impactParameterProduct());
+        registry.fill(HIST("hDecLength"), ptCandB0, candidate.decayLength());
+        registry.fill(HIST("hDecLengthXy"), ptCandB0, candidate.decayLengthXY());
+        registry.fill(HIST("hNormDecLengthXy"), ptCandB0, candidate.decayLengthXY() / candidate.errorDecayLengthXY());
+        registry.fill(HIST("hDcaProng0"), ptCandB0, candidate.impactParameter0());
+        registry.fill(HIST("hDcaProng1"), ptCandB0, candidate.impactParameter1());
+        registry.fill(HIST("hCosp"), ptCandB0, candidate.cpa());
+        registry.fill(HIST("hCospXy"), ptCandB0, candidate.cpaXY());
+        registry.fill(HIST("hEta"), ptCandB0, candidate.eta());
+        registry.fill(HIST("hRapidity"), ptCandB0, hfHelper.yB0(candidate));
+        registry.fill(HIST("hInvMassD"), ptD, invMassD);
+        registry.fill(HIST("hDecLengthD"), ptD, decLenD);
+        registry.fill(HIST("hDecLengthXyD"), ptD, decLenXyD);
+        registry.fill(HIST("hCospD"), ptD, cospD);
+        registry.fill(HIST("hCospXyD"), ptD, cospXyD);
+
+        if constexpr (withDmesMl) {
+          registry.fill(HIST("hMlScoreBkgD"), ptD, candidate.prong0MlScoreBkg());
+          registry.fill(HIST("hMlScorePromptD"), ptD, candidate.prong0MlScorePrompt());
+          registry.fill(HIST("hMlScoreNonPromptD"), ptD, candidate.prong0MlScoreNonprompt());
+        }
+        if constexpr (withB0Ml) {
+          registry.fill(HIST("hMlScoreSigB0"), ptCandB0, candidate.mlProbB0ToDPi());
+        }
+      }
+    }
+    LOG(info) << "Filling sparses";
+    if (fillSparses) {
+      if constexpr (doMc) {
+        if (isSignal) {
+          if constexpr (withDmesMl) {
+            registry.fill(HIST("hMassPtCutVarsRecSig"), invMassB0, ptCandB0, candidate.decayLength(), candidate.decayLengthXY() / candidate.errorDecayLengthXY(), candidate.impactParameterProduct(), candidate.cpa(), invMassD, ptD, candidate.prong0MlScoreBkg(), candidate.prong0MlScoreNonprompt());
+          } else {
+            registry.fill(HIST("hMassPtCutVarsRecSig"), invMassB0, ptCandB0, candidate.decayLength(), candidate.decayLengthXY() / candidate.errorDecayLengthXY(), candidate.impactParameterProduct(), candidate.cpa(), invMassD, ptD, decLenD, cospD);
+          }
+        } else if (fillBackground) {
+          if constexpr (withDmesMl) {
+            registry.fill(HIST("hMassPtCutVarsRecBg"), invMassB0, ptCandB0, candidate.decayLength(), candidate.decayLengthXY() / candidate.errorDecayLengthXY(), candidate.impactParameterProduct(), candidate.cpa(), invMassD, ptD, candidate.prong0MlScoreBkg(), candidate.prong0MlScoreNonprompt());
+          } else {
+            registry.fill(HIST("hMassPtCutVarsRecBg"), invMassB0, ptCandB0, candidate.decayLength(), candidate.decayLengthXY() / candidate.errorDecayLengthXY(), candidate.impactParameterProduct(), candidate.cpa(), invMassD, ptD, decLenD, cospD);
+          }
+        }
+      } else {
+        if constexpr (withDmesMl) {
+          registry.fill(HIST("hMassPtCutVars"), invMassB0, ptCandB0, candidate.decayLength(), candidate.decayLengthXY() / candidate.errorDecayLengthXY(), candidate.impactParameterProduct(), candidate.cpa(), invMassD, ptD, candidate.prong0MlScoreBkg(), candidate.prong0MlScoreNonprompt());
+        } else {
+          registry.fill(HIST("hMassPtCutVars"), invMassB0, ptCandB0, candidate.decayLength(), candidate.decayLengthXY() / candidate.errorDecayLengthXY(), candidate.impactParameterProduct(), candidate.cpa(), invMassD, ptD, decLenD, cospD);
+        }
+      }
+    }
+    LOG(info) << "Filling tree";
+    if (fillTree) {
+      float pseudoRndm = ptD * 1000. - static_cast<int64_t>(ptD * 1000);
+      if (flagMcMatchRec != 0 || (((doMc && fillBackground) || !doMc) && (ptCandB0 >= ptMaxForDownSample || pseudoRndm < downSampleBkgFactor))) {
+        float prong0MlScoreBkg = -1.;
+        float prong0MlScorePrompt = -1.;
+        float prong0MlScoreNonprompt = -1.;
+        float candidateMlScoreSig = -1;
+        if constexpr (withDmesMl) {
+          prong0MlScoreBkg = candidate.prong0MlScoreBkg();
+          prong0MlScorePrompt = candidate.prong0MlScorePrompt();
+          prong0MlScoreNonprompt = candidate.prong0MlScoreNonprompt();
+        }
+        if constexpr (withB0Ml) {
+          candidateMlScoreSig = candidate.mlProbB0ToDPi();
+        }
+        auto prong1 = candidate.template prong1_as<TracksPion>();
+
+        float ptMother = -1.;
+        if constexpr (doMc) {
+          ptMother = candidate.ptMother();
+        }
+
+        double tpcNSigmaPiProng2{0.f}, tofNSigmaPiProng2{0.f}, tpcTofNSigmaPiProng2{0.f};
+        if constexpr (std::is_same_v<CandsDmes, CandsDplus>) {
+          LOG(info) << "Filling B0 candidate with D+ prong";
+          tpcNSigmaPiProng2 = candD.tpcNSigmaPiProng2();
+          tofNSigmaPiProng2 = candD.tofNSigmaPiProng2();
+          tpcTofNSigmaPiProng2 = candD.tpcTofNSigmaPiProng2();
+        } else {
+          LOG(info) << "Filling B0 candidate with D* prong";
+          auto softPi = candD.template softPi_as<TracksSoftPions>();
+          tpcNSigmaPiProng2 = softPi.tpcNSigmaPiSoftPi();
+          tofNSigmaPiProng2 = softPi.tofNSigmaPiSoftPi();
+          tpcTofNSigmaPiProng2 = softPi.tpcTofNSigmaPiSoftPi();
+        }
+
+        hfRedCandB0Lite(
+          // B-meson features
+          invMassB0,
+          ptCandB0,
+          candidate.eta(),
+          candidate.phi(),
+          hfHelper.yB0(candidate),
+          candidate.cpa(),
+          candidate.cpaXY(),
+          candidate.chi2PCA(),
+          candidate.decayLength(),
+          candidate.decayLengthXY(),
+          candidate.decayLengthNormalised(),
+          candidate.decayLengthXYNormalised(),
+          candidate.impactParameterProduct(),
+          candidate.maxNormalisedDeltaIP(),
+          candidateMlScoreSig,
+          candidate.isSelB0ToDPi(),
+          // D-meson features
+          invMassD,
+          ptD,
+          decLenD,
+          decLenXyD,
+          candidate.impactParameter0(),
+          candD.ptProngMin(),
+          candD.absEtaProngMin(),
+          candD.itsNClsProngMin(),
+          candD.tpcNClsCrossedRowsProngMin(),
+          candD.tpcChi2NClProngMax(),
+          candD.tpcNSigmaPiProng0(),
+          candD.tofNSigmaPiProng0(),
+          candD.tpcTofNSigmaPiProng0(),
+          candD.tpcNSigmaKaProng1(),
+          candD.tofNSigmaKaProng1(),
+          candD.tpcTofNSigmaKaProng1(),
+          tpcNSigmaPiProng2,
+          tofNSigmaPiProng2,
+          tpcTofNSigmaPiProng2,
+          prong0MlScoreBkg,
+          prong0MlScorePrompt,
+          prong0MlScoreNonprompt,
+          // pion features
+          candidate.ptProng1(),
+          std::abs(RecoDecay::eta(prong1.pVector())),
+          prong1.itsNCls(),
+          prong1.tpcNClsCrossedRows(),
+          prong1.tpcChi2NCl(),
+          candidate.impactParameter1(),
+          prong1.tpcNSigmaPi(),
+          prong1.tofNSigmaPi(),
+          prong1.tpcTofNSigmaPi(),
+          // MC truth
+          flagMcMatchRec,
+          isSignal,
+          flagWrongCollision,
+          ptMother);
+
+        if constexpr (withDecayTypeCheck) {
+          hfRedB0McCheck(
+            flagMcMatchRec,
+            flagWrongCollision,
+            invMassD,
+            ptD,
+            invMassB0,
+            ptCandB0,
+            candidateMlScoreSig,
+            candidate.pdgCodeBeautyMother(),
+            candidate.pdgCodeCharmMother(),
+            candidate.pdgCodeProng0(),
+            candidate.pdgCodeProng1(),
+            candidate.pdgCodeProng2(),
+            candidate.pdgCodeProng3());
+        }
+      }
+    }
+    LOG(info) << "Filling candidate done";
+  }
+
+  /// Fill candidate information at reconstruction level
+  /// \param doMc is the flag to enable the filling with MC information
+  /// \param withDecayTypeCheck is the flag to enable MC with decay type check
+  /// \param withDmesMl is the flag to enable the filling with ML scores for the D- daughter
+  /// \param withB0Ml is the flag to enable the filling with ML scores for the B0 candidate
+  /// \param candidate is the B0 candidate
+  /// \param candidatesD is the table with D- candidates
+  template <bool doMc, bool withDecayTypeCheck, bool withDmesMl, bool withB0Ml, typename Cand, typename CandsDmes>
   void fillCand(Cand const& candidate,
                 CandsDmes const&)
   {
@@ -723,8 +1005,8 @@ struct HfTaskB0Reduced {
 
   // Process functions
   void processDataDplusPi(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfSelB0ToDPi>> const& candidates,
-                   CandsDplus const& candidatesD,
-                   TracksPion const&)
+                          CandsDplus const& candidatesD,
+                          TracksPion const&)
   {
     for (const auto& candidate : candidates) {
       if (yCandRecoMax >= 0. && std::abs(hfHelper.yB0(candidate)) > yCandRecoMax) {
@@ -736,8 +1018,8 @@ struct HfTaskB0Reduced {
   PROCESS_SWITCH(HfTaskB0Reduced, processDataDplusPi, "Process data without ML scores for B0 and Dplus daughter", true);
 
   void processDataDplusPiWithDmesMl(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfRedB0DpMls, aod::HfSelB0ToDPi>> const& candidates,
-                             CandsDplus const& candidatesD,
-                             TracksPion const&)
+                                    CandsDplus const& candidatesD,
+                                    TracksPion const&)
   {
     for (const auto& candidate : candidates) {
       if (yCandRecoMax >= 0. && std::abs(hfHelper.yB0(candidate)) > yCandRecoMax) {
@@ -749,8 +1031,8 @@ struct HfTaskB0Reduced {
   PROCESS_SWITCH(HfTaskB0Reduced, processDataDplusPiWithDmesMl, "Process data with(out) ML scores for Dplus daughter (B0)", false);
 
   void processDataDplusPiWithB0Ml(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfMlB0ToDPi, aod::HfSelB0ToDPi>> const& candidates,
-                           CandsDplus const& candidatesD,
-                           TracksPion const&)
+                                  CandsDplus const& candidatesD,
+                                  TracksPion const&)
   {
     for (const auto& candidate : candidates) {
       if (yCandRecoMax >= 0. && std::abs(hfHelper.yB0(candidate)) > yCandRecoMax) {
@@ -762,52 +1044,52 @@ struct HfTaskB0Reduced {
   PROCESS_SWITCH(HfTaskB0Reduced, processDataDplusPiWithB0Ml, "Process data with(out) ML scores for B0 (Dplus daughter)", false);
 
   // Process functions
-  void processDataDstarPi(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfSelB0ToDPi>> const& candidates,
-                   CandsDstar const& candidatesD,
-                   TracksPion const&,
-                   TracksSoftPions const&)
+  void processDataDstarPi(soa::Filtered<soa::Join<aod::HfRedCandB0DStar, aod::HfSelB0ToDPi>> const& candidates,
+                          CandsDstar const& candidatesD,
+                          TracksPion const&,
+                          TracksSoftPions const&)
   {
     for (const auto& candidate : candidates) {
       if (yCandRecoMax >= 0. && std::abs(hfHelper.yB0(candidate)) > yCandRecoMax) {
         continue;
       }
-      fillCand<false, false, false, false>(candidate, candidatesD);
+      fillCandDStar<false, false, false, false>(candidate, candidatesD);
     } // candidate loop
   } // processDataDstarPi
   PROCESS_SWITCH(HfTaskB0Reduced, processDataDstarPi, "Process data without ML scores for B0 and Dstar daughter", false);
 
-  void processDataDstarPiWithDmesMl(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfRedB0DpMls, aod::HfSelB0ToDPi>> const& candidates,
-                             CandsDstar const& candidatesD,
-                             TracksPion const&,
-                             TracksSoftPions const&)
+  void processDataDstarPiWithDmesMl(soa::Filtered<soa::Join<aod::HfRedCandB0DStar, aod::HfRedB0DpMls, aod::HfSelB0ToDPi>> const& candidates,
+                                    CandsDstar const& candidatesD,
+                                    TracksPion const&,
+                                    TracksSoftPions const&)
   {
     for (const auto& candidate : candidates) {
       if (yCandRecoMax >= 0. && std::abs(hfHelper.yB0(candidate)) > yCandRecoMax) {
         continue;
       }
-      fillCand<false, false, true, false>(candidate, candidatesD);
+      fillCandDStar<false, false, true, false>(candidate, candidatesD);
     } // candidate loop
   } // processDataDstarPiWithDmesMl
   PROCESS_SWITCH(HfTaskB0Reduced, processDataDstarPiWithDmesMl, "Process data with(out) ML scores for Dstar daughter (B0)", false);
 
-  void processDataDstarPiWithB0Ml(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfMlB0ToDPi, aod::HfSelB0ToDPi>> const& candidates,
-                           CandsDstar const& candidatesD,
-                           TracksPion const&,
-                           TracksSoftPions const&)
+  void processDataDstarPiWithB0Ml(soa::Filtered<soa::Join<aod::HfRedCandB0DStar, aod::HfMlB0ToDPi, aod::HfSelB0ToDPi>> const& candidates,
+                                  CandsDstar const& candidatesD,
+                                  TracksPion const&,
+                                  TracksSoftPions const&)
   {
     for (const auto& candidate : candidates) {
       if (yCandRecoMax >= 0. && std::abs(hfHelper.yB0(candidate)) > yCandRecoMax) {
         continue;
       }
-      fillCand<false, false, false, true>(candidate, candidatesD);
+      fillCandDStar<false, false, false, true>(candidate, candidatesD);
     } // candidate loop
   } // processDataDstarPiWithB0Ml
   PROCESS_SWITCH(HfTaskB0Reduced, processDataDstarPiWithB0Ml, "Process data with(out) ML scores for B0 (Dstar daughter)", false);
 
   void processMcDplusPi(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
-                 aod::HfMcGenRedB0s const& mcParticles,
-                 CandsDplus const& candidatesD,
-                 TracksPion const&)
+                        aod::HfMcGenRedB0s const& mcParticles,
+                        CandsDplus const& candidatesD,
+                        TracksPion const&)
   {
     // MC rec
     for (const auto& candidate : candidates) {
@@ -825,9 +1107,9 @@ struct HfTaskB0Reduced {
   PROCESS_SWITCH(HfTaskB0Reduced, processMcDplusPi, "Process MC without ML scores for B0 and Dplus daughter", false);
 
   void processMcDplusPiWithDecayTypeCheck(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s, aod::HfMcCheckB0s>> const& candidates,
-                                   aod::HfMcGenRedB0s const& mcParticles,
-                                   CandsDplus const& candidatesD,
-                                   TracksPion const&)
+                                          aod::HfMcGenRedB0s const& mcParticles,
+                                          CandsDplus const& candidatesD,
+                                          TracksPion const&)
   {
     // MC rec
     for (const auto& candidate : candidates) {
@@ -845,9 +1127,9 @@ struct HfTaskB0Reduced {
   PROCESS_SWITCH(HfTaskB0Reduced, processMcDplusPiWithDecayTypeCheck, "Process MC with decay type check and without ML scores for B0 and Dplus daughter", false);
 
   void processMcDplusPiWithDmesMl(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfRedB0DpMls, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
-                           aod::HfMcGenRedB0s const& mcParticles,
-                           CandsDplus const& candidatesD,
-                           TracksPion const&)
+                                  aod::HfMcGenRedB0s const& mcParticles,
+                                  CandsDplus const& candidatesD,
+                                  TracksPion const&)
   {
     // MC rec
     for (const auto& candidate : candidates) {
@@ -865,9 +1147,9 @@ struct HfTaskB0Reduced {
   PROCESS_SWITCH(HfTaskB0Reduced, processMcDplusPiWithDmesMl, "Process MC with(out) ML scores for Dplus daughter (B0)", false);
 
   void processMcDplusPiWithDmesMlAndDecayTypeCheck(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfRedB0DpMls, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s, aod::HfMcCheckB0s>> const& candidates,
-                                            aod::HfMcGenRedB0s const& mcParticles,
-                                            CandsDplus const& candidatesD,
-                                            TracksPion const&)
+                                                   aod::HfMcGenRedB0s const& mcParticles,
+                                                   CandsDplus const& candidatesD,
+                                                   TracksPion const&)
   {
     // MC rec
     for (const auto& candidate : candidates) {
@@ -885,9 +1167,9 @@ struct HfTaskB0Reduced {
   PROCESS_SWITCH(HfTaskB0Reduced, processMcDplusPiWithDmesMlAndDecayTypeCheck, "Process MC with decay type check and with(out) ML scores for B0 (Dplus daughter)", false);
 
   void processMcDplusPiWithB0Ml(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfMlB0ToDPi, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
-                         aod::HfMcGenRedB0s const& mcParticles,
-                         CandsDplus const& candidatesD,
-                         TracksPion const&)
+                                aod::HfMcGenRedB0s const& mcParticles,
+                                CandsDplus const& candidatesD,
+                                TracksPion const&)
   {
     // MC rec
     for (const auto& candidate : candidates) {
@@ -905,9 +1187,9 @@ struct HfTaskB0Reduced {
   PROCESS_SWITCH(HfTaskB0Reduced, processMcDplusPiWithB0Ml, "Process MC with(out) ML scores for B0 (Dplus daughter)", false);
 
   void processMcDplusPiWithB0MlAndDecayTypeCheck(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfMlB0ToDPi, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s, aod::HfMcCheckB0s>> const& candidates,
-                                          aod::HfMcGenRedB0s const& mcParticles,
-                                          CandsDplus const& candidatesD,
-                                          TracksPion const&)
+                                                 aod::HfMcGenRedB0s const& mcParticles,
+                                                 CandsDplus const& candidatesD,
+                                                 TracksPion const&)
   {
     // MC rec
     for (const auto& candidate : candidates) {
@@ -924,7 +1206,7 @@ struct HfTaskB0Reduced {
   } // processMcDplusPi
   PROCESS_SWITCH(HfTaskB0Reduced, processMcDplusPiWithB0MlAndDecayTypeCheck, "Process MC with decay type check and with(out) ML scores for B0 (Dplus daughter)", false);
 
-  void processMcDstarPi(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
+  void processMcDstarPi(soa::Filtered<soa::Join<aod::HfRedCandB0DStar, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
                         aod::HfMcGenRedB0s const& mcParticles,
                         CandsDstar const& candidatesD,
                         TracksPion const&,
@@ -935,7 +1217,7 @@ struct HfTaskB0Reduced {
       if (yCandRecoMax >= 0. && std::abs(hfHelper.yB0(candidate)) > yCandRecoMax) {
         continue;
       }
-      fillCand<true, false, false, false>(candidate, candidatesD);
+      fillCandDStar<true, false, false, false>(candidate, candidatesD);
     } // rec
 
     // MC gen. level
@@ -945,7 +1227,7 @@ struct HfTaskB0Reduced {
   } // processMcDstarPi
   PROCESS_SWITCH(HfTaskB0Reduced, processMcDstarPi, "Process MC without ML scores for B0 and Dstar daughter", false);
 
-  void processMcDstarPiWithDmesMl(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfRedB0DpMls, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
+  void processMcDstarPiWithDmesMl(soa::Filtered<soa::Join<aod::HfRedCandB0DStar, aod::HfRedB0DpMls, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
                                   aod::HfMcGenRedB0s const& mcParticles,
                                   CandsDstar const& candidatesD,
                                   TracksPion const&,
@@ -956,7 +1238,7 @@ struct HfTaskB0Reduced {
       if (yCandRecoMax >= 0. && std::abs(hfHelper.yB0(candidate)) > yCandRecoMax) {
         continue;
       }
-      fillCand<true, false, true, false>(candidate, candidatesD);
+      fillCandDStar<true, false, true, false>(candidate, candidatesD);
     } // rec
 
     // MC gen. level
@@ -966,7 +1248,7 @@ struct HfTaskB0Reduced {
   } // processMcDstarPiWithDmesMl
   PROCESS_SWITCH(HfTaskB0Reduced, processMcDstarPiWithDmesMl, "Process MC with(out) ML scores for Dstar daughter (B0)", false);
 
-  void processMcDstarPiWithB0Ml(soa::Filtered<soa::Join<aod::HfRedCandB0, aod::HfMlB0ToDPi, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
+  void processMcDstarPiWithB0Ml(soa::Filtered<soa::Join<aod::HfRedCandB0DStar, aod::HfMlB0ToDPi, aod::HfSelB0ToDPi, aod::HfMcRecRedB0s>> const& candidates,
                                 aod::HfMcGenRedB0s const& mcParticles,
                                 CandsDstar const& candidatesD,
                                 TracksPion const&,
@@ -977,7 +1259,7 @@ struct HfTaskB0Reduced {
       if (yCandRecoMax >= 0. && std::abs(hfHelper.yB0(candidate)) > yCandRecoMax) {
         continue;
       }
-      fillCand<true, false, false, true>(candidate, candidatesD);
+      fillCandDStar<true, false, false, true>(candidate, candidatesD);
     } // rec
 
     // MC gen. level

@@ -2246,9 +2246,6 @@ DECLARE_SOA_TABLE(HfCandB0Prongs, "AOD", "HFCANDB0PRONGS",
 
 using HfCandB0 = soa::Join<HfCandB0Ext, HfCandB0Prongs>;
 
-DECLARE_SOA_EXTENDED_TABLE_USER(HfCandB0ExtDStars, "AOD", "HFREDB0EXTDST", //! Table with B0 daughter indices
-                                hf_cand_b0_reduced::ProngDStarId, hf_cand_b0_reduced::Prong1Id, hf_cand_b0_reduced::ProngSoftPiId);
-
 // table with results of reconstruction level MC matching
 DECLARE_SOA_TABLE(HfCandB0McRec, "AOD", "HFCANDB0MCREC",
                   hf_cand_b0::FlagMcMatchRec,
