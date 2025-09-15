@@ -93,23 +93,23 @@ DECLARE_SOA_TABLE(HfcRedCharmTrigs, "AOD", "HFCREDCHARMTRIG", //! Table with cha
 
 namespace hf_assoc_track_reduced
 {
-DECLARE_SOA_COLUMN(OriginTrackId, originTrackId, int);         //! Original track index
+DECLARE_SOA_COLUMN(OriginTrackId, originTrackId, int);     //! Original track index
 DECLARE_SOA_COLUMN(NTpcCrossedRows, nTpcCrossedRows, int); //! Number of crossed TPC Rows
 DECLARE_SOA_COLUMN(ItsClusterMap, itsClusterMap, int);     //! ITS cluster map, one bit per a layer, starting from the innermost
 DECLARE_SOA_COLUMN(ItsNCls, itsNCls, int);                 //! Number of ITS clusters
-DECLARE_SOA_COLUMN(EtaAssocTrack, etaAssocTrack, float);       //! Eta of the track
-DECLARE_SOA_COLUMN(PhiAssocTrack, phiAssocTrack, float);       //! Phi of the track
-DECLARE_SOA_COLUMN(PtAssocTrack, ptAssocTrack, float);         //! Pt of the track
-DECLARE_SOA_COLUMN(DcaXY, dcaXY, float);                       //! Impact parameter in XY of the track to the primary vertex
-DECLARE_SOA_COLUMN(DcaZ, dcaZ, float);                         //! Impact parameter in Z of the track to the primary vertex
+DECLARE_SOA_COLUMN(EtaAssocTrack, etaAssocTrack, float);   //! Eta of the track
+DECLARE_SOA_COLUMN(PhiAssocTrack, phiAssocTrack, float);   //! Phi of the track
+DECLARE_SOA_COLUMN(PtAssocTrack, ptAssocTrack, float);     //! Pt of the track
+DECLARE_SOA_COLUMN(DcaXY, dcaXY, float);                   //! Impact parameter in XY of the track to the primary vertex
+DECLARE_SOA_COLUMN(DcaZ, dcaZ, float);                     //! Impact parameter in Z of the track to the primary vertex
 DECLARE_SOA_COLUMN(NTpcCrossedRowsTrig, nTpcCrossedRowsTrig, int); //! Number of crossed TPC Rows
 DECLARE_SOA_COLUMN(ItsClusterMapTrig, itsClusterMapTrig, int);     //! ITS cluster map, one bit per a layer, starting from the innermost
 DECLARE_SOA_COLUMN(ItsNClsTrig, itsNClsTrig, int);                 //! Number of ITS clusters
-DECLARE_SOA_COLUMN(EtaAssocTrackTrig, etaAssocTrackTrig, float);       //! Eta of the track
-DECLARE_SOA_COLUMN(PhiAssocTrackTrig, phiAssocTrackTrig, float);       //! Phi of the track
-DECLARE_SOA_COLUMN(PtAssocTrackTrig, ptAssocTrackTrig, float);         //! Pt of the track
-DECLARE_SOA_COLUMN(DcaXYTrig, dcaXYTrig, float);                       //! Impact parameter in XY of the track to the primary vertex
-DECLARE_SOA_COLUMN(DcaZTrig, dcaZTrig, float);                         //! Impact parameter in Z of the track to the primary vertex
+DECLARE_SOA_COLUMN(EtaAssocTrackTrig, etaAssocTrackTrig, float);   //! Eta of the track
+DECLARE_SOA_COLUMN(PhiAssocTrackTrig, phiAssocTrackTrig, float);   //! Phi of the track
+DECLARE_SOA_COLUMN(PtAssocTrackTrig, ptAssocTrackTrig, float);     //! Pt of the track
+DECLARE_SOA_COLUMN(DcaXYTrig, dcaXYTrig, float);                   //! Impact parameter in XY of the track to the primary vertex
+DECLARE_SOA_COLUMN(DcaZTrig, dcaZTrig, float);                     //! Impact parameter in Z of the track to the primary vertex
 } // namespace hf_assoc_track_reduced
 DECLARE_SOA_TABLE(AssocTrackReds, "AOD", "ASSOCTRACKRED", //! Table with associated track info
                   soa::Index<>,
