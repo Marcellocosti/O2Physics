@@ -112,16 +112,14 @@ struct HfCorrelatorFlowCharmHadronsReduced {
 
   int poolBins{0};
 
-  using SameEvtPairsChHad = soa::Filtered<soa::Join<aod::HfcRedSEChBases, aod::HfcRedAssTracks>>;
-  using SameEvtPairsHadHad = soa::Filtered<soa::Join<aod::HfcRedSEHadBases, aod::HfcRedAssTracks>>;
-  using AssocTracks = soa::Filtered<soa::Join<aod::HfcRedAssBases, aod::HfcRedAssTracks>>;
+  // using AssocTracks = aod::HfcRedAssBases;
   using TrigCharmCands = soa::Join<aod::HfcRedTrigBases, aod::HfcRedTrigCharms>;
 
-  Filter filterAssocTracks = (nabs(aod::hf_correl_charm_had_reduced::dcaXYAssoc) < dcaXYTrackMax) && (nabs(aod::hf_correl_charm_had_reduced::dcaZAssoc) < dcaZTrackMax) && (aod::hf_correl_charm_had_reduced::nTpcCrossedRowsAssoc > tpcCrossedRowsMin) && (aod::hf_correl_charm_had_reduced::itsNClsAssoc > itsNClsMin);
-  Filter filterTrigTracks = (nabs(aod::hf_correl_charm_had_reduced::dcaXYTrig) < dcaXYTrackMax) && (nabs(aod::hf_correl_charm_had_reduced::dcaZTrig) < dcaZTrackMax) && (aod::hf_correl_charm_had_reduced::nTpcCrossedRowsTrig > tpcCrossedRowsMin) && (aod::hf_correl_charm_had_reduced::itsNClsTrig > itsNClsMin);
-  Filter filterSameEvtPairs = (nabs(aod::hf_correl_charm_had_reduced::deltaEta) > deltaEtaAbsMin) && (nabs(aod::hf_correl_charm_had_reduced::deltaEta) < deltaEtaAbsMax);
+  // Filter filterAssocTracks = (nabs(aod::hf_correl_charm_had_reduced::dcaXYAssoc) < dcaXYTrackMax) && (nabs(aod::hf_correl_charm_had_reduced::dcaZAssoc) < dcaZTrackMax) && (aod::hf_correl_charm_had_reduced::nTpcCrossedRowsAssoc > tpcCrossedRowsMin) && (aod::hf_correl_charm_had_reduced::itsNClsAssoc > itsNClsMin);
+  // Filter filterTrigTracks = (nabs(aod::hf_correl_charm_had_reduced::dcaXYTrig) < dcaXYTrackMax) && (nabs(aod::hf_correl_charm_had_reduced::dcaZTrig) < dcaZTrackMax) && (aod::hf_correl_charm_had_reduced::nTpcCrossedRowsTrig > tpcCrossedRowsMin) && (aod::hf_correl_charm_had_reduced::itsNClsTrig > itsNClsMin);
+  // Filter filterSameEvtPairs = (nabs(aod::hf_correl_charm_had_reduced::deltaEta) > deltaEtaAbsMin) && (nabs(aod::hf_correl_charm_had_reduced::deltaEta) < deltaEtaAbsMax);
 
-  Preslice<AssocTracks> assocTracksPerCol = aod::hf_correl_charm_had_reduced::hfcRedCorrCollId;
+  Preslice<aod::HfcRedAssBases> assocTracksPerCol = aod::hf_correl_charm_had_reduced::hfcRedCorrCollId;
   Preslice<TrigCharmCands> trigCharmCandsPerCol = aod::hf_correl_charm_had_reduced::hfcRedCorrCollId;
 
   ConfigurableAxis zPoolBins{"zPoolBins", {VARIABLE_WIDTH, -10.0, -2.5, 2.5, 10.0}, "Z vertex position pools"};
@@ -462,7 +460,7 @@ struct HfCorrelatorFlowCharmHadronsReduced {
     }
   }
 
-  void processSameEventCharmHadWMultMix(SameEvtPairsChHad::iterator const& pair,
+  void processSameEventCharmHadWMultMix(aod::HfcRedSEChBases::iterator const& pair,
                                         aod::HfcRedTrigCharms const&,
                                         aod::HfcRedCorrColls const&)
   {
@@ -478,7 +476,7 @@ struct HfCorrelatorFlowCharmHadronsReduced {
   }
   PROCESS_SWITCH(HfCorrelatorFlowCharmHadronsReduced, processSameEventCharmHadWMultMix, "Process Same Event for Charm-Had with multiplicity pools", true);
 
-  void processSameEventHadHadWMultMix(SameEvtPairsHadHad::iterator const& pair,
+  void processSameEventHadHadWMultMix(aod::HfcRedSEHadBases::iterator const& pair,
                                       aod::HfcRedTrigTracks const&,
                                       aod::HfcRedCorrColls const&)
   {
@@ -494,7 +492,7 @@ struct HfCorrelatorFlowCharmHadronsReduced {
   }
   PROCESS_SWITCH(HfCorrelatorFlowCharmHadronsReduced, processSameEventHadHadWMultMix, "Process Same Event for Had-Had with multiplicity pools", false);
 
-  void processSameEventCharmHadWCentMix(SameEvtPairsChHad::iterator const& pair,
+  void processSameEventCharmHadWCentMix(aod::HfcRedSEChBases::iterator const& pair,
                                         aod::HfcRedTrigCharms const&,
                                         aod::HfcRedCorrColls const&)
   {
@@ -510,7 +508,7 @@ struct HfCorrelatorFlowCharmHadronsReduced {
   }
   PROCESS_SWITCH(HfCorrelatorFlowCharmHadronsReduced, processSameEventCharmHadWCentMix, "Process Same Event for Charm-Had with centrality pools", true);
 
-  void processSameEventHadHadWCentMix(SameEvtPairsHadHad::iterator const& pair,
+  void processSameEventHadHadWCentMix(aod::HfcRedSEHadBases::iterator const& pair,
                                       aod::HfcRedTrigTracks const&,
                                       aod::HfcRedCorrColls const&)
   {
@@ -528,11 +526,12 @@ struct HfCorrelatorFlowCharmHadronsReduced {
 
   void processMixedEventCharmHadWCentMix(aod::HfcRedCorrColls const& collisions,
                                          TrigCharmCands const& candidates,
-                                         AssocTracks const& tracks)
+                                         aod::HfcRedAssBases const& tracks)
   {
+    LOG(info) << "Processing Mixed Event for Charm-Had with centrality pools, number of collisions: " << collisions.size() << ", number of tracks: " << tracks.size();
     BinningCentPosZ binPolicyPosZCent{{zPoolBins, centPoolBins}, true};
     auto pairsTuple = std::make_tuple(candidates, tracks);
-    Pair<aod::HfcRedCorrColls, TrigCharmCands, AssocTracks, BinningCentPosZ> const pairs{binPolicyPosZCent, numberEventsMixed, -1, collisions, pairsTuple, &cache};
+    Pair<aod::HfcRedCorrColls, TrigCharmCands, aod::HfcRedAssBases, BinningCentPosZ> const pairs{binPolicyPosZCent, numberEventsMixed, -1, collisions, pairsTuple, &cache};
     if (fillSparses && fillTables) {
       fillMixedEvent<true, true>(pairs, binPolicyPosZCent);
     } else if (fillSparses) {
@@ -545,11 +544,11 @@ struct HfCorrelatorFlowCharmHadronsReduced {
 
   void processMixedEventCharmHadWMultMix(aod::HfcRedCorrColls const& collisions,
                                          TrigCharmCands const& candidates,
-                                         AssocTracks const& tracks)
+                                         aod::HfcRedAssBases const& tracks)
   {
     BinningMultPosZ binPolicyPosZMult{{zPoolBins, multPoolBins}, true};
     auto pairsTuple = std::make_tuple(candidates, tracks);
-    Pair<aod::HfcRedCorrColls, TrigCharmCands, AssocTracks, BinningMultPosZ> const pairs{binPolicyPosZMult, numberEventsMixed, -1, collisions, pairsTuple, &cache};
+    Pair<aod::HfcRedCorrColls, TrigCharmCands, aod::HfcRedAssBases, BinningMultPosZ> const pairs{binPolicyPosZMult, numberEventsMixed, -1, collisions, pairsTuple, &cache};
     if (fillSparses && fillTables) {
       fillMixedEvent<true, true>(pairs, binPolicyPosZMult);
     } else if (fillSparses) {
@@ -561,11 +560,11 @@ struct HfCorrelatorFlowCharmHadronsReduced {
   PROCESS_SWITCH(HfCorrelatorFlowCharmHadronsReduced, processMixedEventCharmHadWMultMix, "Process Mixed Event for Charm-Had with multiplicity pools", false);
 
   void processMixedEventHadHadWCentMix(aod::HfcRedCorrColls const& collisions,
-                                       AssocTracks const& tracks)
+                                       aod::HfcRedAssBases const& tracks)
   {
     BinningCentPosZ binPolicyPosZCent{{zPoolBins, centPoolBins}, true};
     auto tracksTuple = std::make_tuple(tracks);
-    SameKindPair<aod::HfcRedCorrColls, AssocTracks, BinningCentPosZ> const pairs{binPolicyPosZCent, numberEventsMixed, -1, collisions, tracksTuple, &cache};
+    SameKindPair<aod::HfcRedCorrColls, aod::HfcRedAssBases, BinningCentPosZ> const pairs{binPolicyPosZCent, numberEventsMixed, -1, collisions, tracksTuple, &cache};
     if (fillSparses && fillTables) {
       fillMixedEvent<true, true>(pairs, binPolicyPosZCent);
     } else if (fillSparses) {
@@ -577,11 +576,11 @@ struct HfCorrelatorFlowCharmHadronsReduced {
   PROCESS_SWITCH(HfCorrelatorFlowCharmHadronsReduced, processMixedEventHadHadWCentMix, "Process Mixed Event for Had-Had with centrality pools", false);
 
   void processMixedEventHadHadWMultMix(aod::HfcRedCorrColls const& collisions,
-                                       AssocTracks const& tracks)
+                                       aod::HfcRedAssBases const& tracks)
   {
     BinningMultPosZ binPolicyPosZMult{{zPoolBins, multPoolBins}, true};
     auto tracksTuple = std::make_tuple(tracks);
-    SameKindPair<aod::HfcRedCorrColls, AssocTracks, BinningMultPosZ> const pairs{binPolicyPosZMult, numberEventsMixed, -1, collisions, tracksTuple, &cache};
+    SameKindPair<aod::HfcRedCorrColls, aod::HfcRedAssBases, BinningMultPosZ> const pairs{binPolicyPosZMult, numberEventsMixed, -1, collisions, tracksTuple, &cache};
     if (fillSparses && fillTables) {
       fillMixedEvent<true, true>(pairs, binPolicyPosZMult);
     } else if (fillSparses) {
