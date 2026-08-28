@@ -29,7 +29,6 @@
 #include <string>
 #include <vector>
 
-
 namespace o2::analysis
 {
 namespace hf_flow_utils
@@ -42,9 +41,9 @@ enum QvecEstimator { FV0A = 0,
                      TPCNeg,
                      TPCTot };
 
-class QVectorResoHelper {
+class QVectorResoHelper
+{
  public:
-
   QVectorResoHelper() = default;
 
   /// Call once per run / timestamp update

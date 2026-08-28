@@ -833,7 +833,7 @@ struct HfTaskFlowCharmHadrons {
         }
       }
 
-      bool subtractDaugsFromRedQVec = storeRedQVec && subtrDaugsFromRedQVec  &&
+      bool subtractDaugsFromRedQVec = storeRedQVec && subtrDaugsFromRedQVec &&
                                       (qVecRedDetector == QvecEstimator::TPCNeg ||
                                        qVecRedDetector == QvecEstimator::TPCPos ||
                                        qVecRedDetector == QvecEstimator::TPCTot);
@@ -925,8 +925,8 @@ struct HfTaskFlowCharmHadrons {
 
   // Dplus with ML SP and EsE
   void processDplusSPEsEMl(CollsWithSPEsEQvecs::iterator const& collision,
-                        CandDplusDataWMl const& /*candidatesD0*/,
-                        TracksWithExtra const& tracks)
+                           CandDplusDataWMl const& /*candidatesD0*/,
+                           TracksWithExtra const& tracks)
   {
     runFlowAnalysis<RunMode::kSPEsE, DecayChannel::DplusToPiKPi>(collision, candidatesDplus, tracks);
   }
@@ -1068,8 +1068,6 @@ struct HfTaskFlowCharmHadrons {
   //   runFlowAnalysis<RunMode::kSP, DecayChannel::XicToPiKP>(collision, candsXicToPiKP, tracks);
   // }
   // PROCESS_SWITCH(HfTaskFlowCharmHadrons, processXic, "Process Xic candidates", false);
-
-
 
   /// Compute resolution
   /// \param collision is the collision with the Q vector information
