@@ -131,23 +131,21 @@ constexpr int NMassHypos = 2; // mass hypotheses per channel, i.e. the two order
 /// The ordering of the channels should strictly follow Channels2Prong
 constexpr TrackMlRole trackRoles2Prongs[NChannels2Prong][NMassHypos][N2Prongs] = {
   {
-    {RolePionD0, RoleKaonD0},  // D0 → π± K∓
-    {RoleKaonD0, RolePionD0}   // D0 → π± K∓
-  }
-};
+    {RolePionD0, RoleKaonD0}, // D0 → π± K∓
+    {RoleKaonD0, RolePionD0}  // D0 → π± K∓
+  }};
 
 /// Role of each track in the candidate, per channel and mass hypothesis.
 /// The ordering of the channels should strictly follow Channels3Prong
 constexpr TrackMlRole trackRoles3Prongs[NChannels3Prong][NMassHypos][N3Prongs] = {
   {
-    {RolePionDplus, RoleKaonDplus, RolePionDplus},  // D± → π± K∓ π±
-    {RolePionDplus, RoleKaonDplus, RolePionDplus}   // D± → π± K∓ π± (swapped, no effect for D+)
+    {RolePionDplus, RoleKaonDplus, RolePionDplus}, // D± → π± K∓ π±
+    {RolePionDplus, RoleKaonDplus, RolePionDplus}  // D± → π± K∓ π± (swapped, no effect for D+)
   },
   {
     {RoleKaonDs, RoleKaonDs, RolePionDs}, // D_s± → K± K∓ π±
     {RolePionDs, RoleKaonDs, RoleKaonDs}  // D_s± → K± K∓ π± (swapped)
-  }
-};
+  }};
 
 constexpr double PtMaxModel = 1.e10;
 
@@ -915,7 +913,7 @@ struct HfMlBasedTrackSelector {
   struct HfProngCandidate {
     o2::track::TrackParCov parCov;
     std::array<float, 3> pVec{};
-    std::array<float, 2> dcaInfo{};   ///< DCA (xy, z) to the primary vertex
+    std::array<float, 2> dcaInfo{}; ///< DCA (xy, z) to the primary vertex
     uint32_t mask{};       ///< aod::HfSelTrack::isIdentifiedPid
     int64_t globalIndex{}; ///< index in the track table, written to the skim
   };
@@ -947,9 +945,9 @@ struct HfMlBasedTrackSelector {
   // filter collisions
   Filter filterSelectCollisions = (aod::hf_sel_collision::whyRejectColl == static_cast<o2::hf_evsel::HfCollisionRejectionMask>(0));
   // filter track indices
-  Filter filterSelectTrackIds = ( (aod::hf_sel_track::isSelProng & static_cast<uint32_t>(BIT(CandidateType::Cand2Prong))) != 0u ||
-                                  (aod::hf_sel_track::isSelProng & static_cast<uint32_t>(BIT(CandidateType::Cand3Prong))) != 0u ||
-                                  (aod::hf_sel_track::isSelProng & static_cast<uint32_t>(BIT(CandidateType::CandDstar))) != 0u );
+  Filter filterSelectTrackIds = ((aod::hf_sel_track::isSelProng & static_cast<uint32_t>(BIT(CandidateType::Cand2Prong))) != 0u ||
+                                 (aod::hf_sel_track::isSelProng & static_cast<uint32_t>(BIT(CandidateType::Cand3Prong))) != 0u ||
+                                 (aod::hf_sel_track::isSelProng & static_cast<uint32_t>(BIT(CandidateType::CandDstar))) != 0u);
 
   Preslice<FilteredTrackAssocSel> trackIndicesPerCollision = aod::track_association::collisionId;
 
@@ -1685,7 +1683,9 @@ struct HfMlBasedTrackSelector {
           timing[TimeProcessDstar] += elapsedSeconds(tStartDstar);
         }
 
-        if (!canBe3Prong) { continue; }
+        if (!canBe3Prong) {
+          continue;
+        }
         if (!isTwoProngVtxGoodFor3Prongs) {
           ++counters[CountPairsRejected2P];
           continue;
@@ -1698,9 +1698,9 @@ struct HfMlBasedTrackSelector {
           }
           ++counters[CountTripletsEnumerated];
           processTriplet(collision, prong1.parCov, prongOpp.parCov, prong2.parCov,
-                        prong1.pVec, prongOpp.pVec, prong2.pVec,
-                        prong1.mask, prongOpp.mask, prong2.mask,
-                        prong1.globalIndex, prongOpp.globalIndex, prong2.globalIndex);
+                         prong1.pVec, prongOpp.pVec, prong2.pVec,
+                         prong1.mask, prongOpp.mask, prong2.mask,
+                         prong1.globalIndex, prongOpp.globalIndex, prong2.globalIndex);
         }
       }
     }
